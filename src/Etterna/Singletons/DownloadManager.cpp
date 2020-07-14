@@ -742,66 +742,54 @@ DownloadManager::RemoveFavorite(const string& chartkey)
 		curl_easy_setopt(r->handle, CURLOPT_CUSTOMREQUEST, "DELETE");
 }
 
-// we could pass scoregoal objects instead..? -mina
 void
-DownloadManager::RemoveGoal(const string& chartkey, float wife, float rate)
+DownloadManager::RemoveGoal(ScoreGoal* goal)
 {
-	string req = "user/" + DLMAN->sessionUser + "/goals/" + chartkey + "/" +
-				 to_string(wife) + "/" + to_string(rate);
-	auto done = [](HTTPRequest& req, CURLMsg*) {
-
-	};
+	string req = "user/" + DLMAN->sessionUser + "/goals/" + goal->chartkey +
+				 "/" + to_string(goal->percent) + "/" + to_string(goal->rate);
+	// TODO: ERROR HANDLING
+	auto done = [](HTTPRequest&, CURLMsg*) {}; // Do-nothing lambda
 	auto r = SendRequest(req, {}, done);
-	if (r)
+	if (r) {
 		curl_easy_setopt(r->handle, CURLOPT_CUSTOMREQUEST, "DELETE");
+	}
 }
 
 void
-DownloadManager::AddGoal(const string& chartkey,
-						 float wife,
-						 float rate,
-						 DateTime& timeAssigned)
+DownloadManager::AddGoal(ScoreGoal* goal)
 {
 	string req = "user/" + DLMAN->sessionUser + "/goals";
-	auto done = [](HTTPRequest& req, CURLMsg*) {
-
-	};
+	// TODO: ERROR HANDLING
+	auto done = [](HTTPRequest&, CURLMsg*) {}; // Do-nothing lambda
 	vector<pair<string, string>> postParams = {
-		make_pair("chartkey", chartkey),
-		make_pair("rate", to_string(rate)),
-		make_pair("wife", to_string(wife)),
-		make_pair("timeAssigned", timeAssigned.GetString())
+		make_pair("chartkey", goal->chartkey),
+		make_pair("rate", to_string(goal->rate)),
+		make_pair("wife", to_string(goal->percent)),
+		make_pair("timeAssigned", goal->timeassigned.GetString())
 	};
 	SendRequest(req, postParams, done, true, true);
 }
 
 void
-DownloadManager::UpdateGoal(const string& chartkey,
-							float wife,
-							float rate,
-							bool achieved,
-							DateTime& timeAssigned,
-							DateTime& timeAchieved)
+DownloadManager::UpdateGoal(ScoreGoal* goal)
 {
-	string doot = "0000:00:00 00:00:00";
-	if (achieved)
-		doot = timeAchieved.GetString();
+	string timeachieved = "0000:00:00 00:00:00";
+	if (goal->achieved)
+		timeachieved = goal->timeachieved.GetString();
 
 	string req = "user/" + DLMAN->sessionUser + "/goals/update";
-	auto done = [](HTTPRequest& req, CURLMsg*) {
-
-	};
+	// TODO: ERROR HANDLING
+	auto done = [](HTTPRequest&, CURLMsg*) {}; // Do-nothing lambda
 	vector<pair<string, string>> postParams = {
-		make_pair("chartkey", chartkey),
-		make_pair("rate", to_string(rate)),
-		make_pair("wife", to_string(wife)),
-		make_pair("achieved", to_string(achieved)),
-		make_pair("timeAssigned", timeAssigned.GetString()),
-		make_pair("timeAchieved", doot)
+		make_pair("chartkey", goal->chartkey),
+		make_pair("rate", to_string(goal->rate)),
+		make_pair("wife", to_string(goal->percent)),
+		make_pair("achieved", to_string(goal->achieved)),
+		make_pair("timeAssigned", goal->timeassigned.GetString()),
+		make_pair("timeAchieved", timeachieved)
 	};
 	SendRequest(req, postParams, done, true, true);
 }
-
 void
 DownloadManager::RefreshFavourites()
 {

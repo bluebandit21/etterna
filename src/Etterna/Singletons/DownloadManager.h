@@ -5,6 +5,7 @@
 #include "Etterna/Globals/global.h"
 #include "RageUtil/File/RageFile.h"
 #include "Etterna/Models/Misc/HighScore.h"
+#include "../Models/Misc/Profile.h"
 #include "ScreenManager.h"
 #include "RageUtil/File/RageFileManager.h"
 #include "curl/curl.h"
@@ -206,18 +207,9 @@ class DownloadManager
 	void RefreshFavourites();
 	std::vector<std::string> favorites;
 
-	void AddGoal(const std::string& chartkey,
-				 float wife,
-				 float rate,
-				 DateTime& timeAssigned);
-	void UpdateGoal(const std::string& chartkey,
-					float wife,
-					float rate,
-					bool achieved,
-					DateTime& timeAssigned,
-					DateTime& timeAchieved);
-	void RemoveGoal(const std::string& chartkey, float wife, float rate);
-
+	void AddGoal(ScoreGoal* goal);
+	void UpdateGoal(ScoreGoal* goal);
+	void RemoveGoal(ScoreGoal* goal);
 	void EndSessionIfExists(); // Calls EndSession if logged in
 	void EndSession();		   // Sends session destroy request
 	void StartSession(std::string user,
