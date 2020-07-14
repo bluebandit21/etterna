@@ -539,6 +539,7 @@ ScoreGoal::CreateNode() const
 	}
 
 	pNode->AppendChild("Comment", comment);
+	pNode->AppendChild("Uploaded", uploaded);
 
 	return pNode;
 }
@@ -566,6 +567,7 @@ ScoreGoal::LoadFromNode(const XNode* pNode)
 	}
 
 	pNode->GetChildValue("Comment", comment);
+	pNode->GetChildValue("Uploaded", uploaded);
 }
 
 HighScore*

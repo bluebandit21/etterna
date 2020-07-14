@@ -75,6 +75,7 @@ class ScoreGoal
 	DateTime timeachieved;
 	std::string comment = "";
 	std::string chartkey = "";
+	bool uploaded = false;
 
 	// which specific score was this goal achieved by, reminder to consider
 	// what happens when individual score deletion is possibly added -mina
