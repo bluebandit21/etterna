@@ -751,11 +751,23 @@ requestSucceeded(HTTPRequest& req, CURLMsg*)
 		// Either the request succeeded or failed for a good reason.
 		return true;
 	}
-	// TODO: Add better logging
+	// TODO: Add better / more helpful logging
 	LOG->Warn(
 	  "Response code %ld encountered while handling a Goal http request.",
 	  response_code);
 	return false;
+}
+/**@brief Set goal->uploaded to true if curl request succesuflly finishes.*/
+void
+setUploadedUponSuccess(ScoreGoal* goal, HTTPRequest& req, CURLMsg* msg)
+{
+	// TODO: Make this more useful
+	if (requestSucceeded(req, msg)) {
+		goal->uploaded = true;
+	} else {
+		LOG->Warn(
+		  "An error occurred while trying to upload a goal to the server.");
+	}
 }
 
 void
@@ -763,7 +775,7 @@ DownloadManager::RemoveGoal(ScoreGoal* goal)
 {
 	string req = "user/" + DLMAN->sessionUser + "/goals/" + goal->chartkey +
 				 "/" + to_string(goal->percent) + "/" + to_string(goal->rate);
-	// TODO: ERROR HANDLING
+	// TODO: ERROR HANDLING / uploaded status
 	auto done = [](HTTPRequest&, CURLMsg*) {}; // Do-nothing lambda.
 	auto r = SendRequest(req, {}, done);
 	if (r) {
@@ -781,15 +793,9 @@ DownloadManager::AddGoal(ScoreGoal* goal)
 		make_pair("wife", to_string(goal->percent)),
 		make_pair("timeAssigned", goal->timeassigned.GetString())
 	};
-	auto done = [&goal](HTTPRequest& req, CURLMsg* msg) {
-		if (requestSucceeded(req, msg)) {
-			goal->uploaded = true;
-		} else {
-			LOG->Warn(
-			  "An error occurred while trying to upload a goal to the server.");
-		}
-	};
-	SendRequest(req, postParams, &done, true, true);
+	using namespace std::placeholders;
+	auto bound = std::bind(setUploadedUponSuccess, goal, _1, _2);
+	SendRequest(req, postParams, bound, true, true);
 }
 
 void
@@ -800,7 +806,6 @@ DownloadManager::UpdateGoal(ScoreGoal* goal)
 		timeachieved = goal->timeachieved.GetString();
 
 	string req = "user/" + DLMAN->sessionUser + "/goals/update";
-	// TODO: ERROR HANDLING
 	vector<pair<string, string>> postParams = {
 		make_pair("chartkey", goal->chartkey),
 		make_pair("rate", to_string(goal->rate)),
@@ -809,15 +814,9 @@ DownloadManager::UpdateGoal(ScoreGoal* goal)
 		make_pair("timeAssigned", goal->timeassigned.GetString()),
 		make_pair("timeAchieved", timeachieved)
 	};
-	auto done = [&goal](HTTPRequest& req, CURLMsg* msg) {
-		if (requestSucceeded(req, msg)) {
-			goal->uploaded = true;
-		} else {
-			LOG->Warn(
-			  "An error occurred while trying to upload a goal to the server.");
-		}
-	};
-	SendRequest(req, postParams, &done, true, true);
+	using namespace std::placeholders;
+	auto bound = std::bind(setUploadedUponSuccess, goal, _1, _2);
+	SendRequest(req, postParams, bound, true, true);
 }
 void
 DownloadManager::RefreshFavourites()
