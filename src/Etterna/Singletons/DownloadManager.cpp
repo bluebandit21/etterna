@@ -734,12 +734,28 @@ DownloadManager::RemoveFavorite(const string& chartkey)
 	if (it != DLMAN->favorites.end())
 		DLMAN->favorites.erase(it);
 	string req = "user/" + DLMAN->sessionUser + "/favorites/" + chartkey;
-	auto done = [](HTTPRequest& req, CURLMsg*) {
-
-	};
+	auto done = [](HTTPRequest& req, CURLMsg*) {};
 	auto r = SendRequest(req, {}, done);
 	if (r)
 		curl_easy_setopt(r->handle, CURLOPT_CUSTOMREQUEST, "DELETE");
+}
+/**@brief requestSuceeded returns true if the request succesfully completed, and
+   false otherwise.
+	If an error occurs, it's response code is logged at the warn level.*/
+bool
+requestSucceeded(HTTPRequest& req, CURLMsg*)
+{
+	long response_code;
+	curl_easy_getinfo(req.handle, CURLINFO_RESPONSE_CODE, &response_code);
+	if (response_code == 200 || response_code == 404) {
+		// Either the request succeeded or failed for a good reason.
+		return true;
+	}
+	// TODO: Add better logging
+	LOG->Warn(
+	  "Response code %ld encountered while handling a Goal http request.",
+	  response_code);
+	return false;
 }
 
 void
@@ -748,7 +764,7 @@ DownloadManager::RemoveGoal(ScoreGoal* goal)
 	string req = "user/" + DLMAN->sessionUser + "/goals/" + goal->chartkey +
 				 "/" + to_string(goal->percent) + "/" + to_string(goal->rate);
 	// TODO: ERROR HANDLING
-	auto done = [](HTTPRequest&, CURLMsg*) {}; // Do-nothing lambda
+	auto done = [](HTTPRequest&, CURLMsg*) {}; // Do-nothing lambda.
 	auto r = SendRequest(req, {}, done);
 	if (r) {
 		curl_easy_setopt(r->handle, CURLOPT_CUSTOMREQUEST, "DELETE");
@@ -759,15 +775,21 @@ void
 DownloadManager::AddGoal(ScoreGoal* goal)
 {
 	string req = "user/" + DLMAN->sessionUser + "/goals";
-	// TODO: ERROR HANDLING
-	auto done = [](HTTPRequest&, CURLMsg*) {}; // Do-nothing lambda
 	vector<pair<string, string>> postParams = {
 		make_pair("chartkey", goal->chartkey),
 		make_pair("rate", to_string(goal->rate)),
 		make_pair("wife", to_string(goal->percent)),
 		make_pair("timeAssigned", goal->timeassigned.GetString())
 	};
-	SendRequest(req, postParams, done, true, true);
+	auto done = [&goal](HTTPRequest& req, CURLMsg* msg) {
+		if (requestSucceeded(req, msg)) {
+			goal->uploaded = true;
+		} else {
+			LOG->Warn(
+			  "An error occurred while trying to upload a goal to the server.");
+		}
+	};
+	SendRequest(req, postParams, &done, true, true);
 }
 
 void
@@ -779,7 +801,6 @@ DownloadManager::UpdateGoal(ScoreGoal* goal)
 
 	string req = "user/" + DLMAN->sessionUser + "/goals/update";
 	// TODO: ERROR HANDLING
-	auto done = [](HTTPRequest&, CURLMsg*) {}; // Do-nothing lambda
 	vector<pair<string, string>> postParams = {
 		make_pair("chartkey", goal->chartkey),
 		make_pair("rate", to_string(goal->rate)),
@@ -788,7 +809,15 @@ DownloadManager::UpdateGoal(ScoreGoal* goal)
 		make_pair("timeAssigned", goal->timeassigned.GetString()),
 		make_pair("timeAchieved", timeachieved)
 	};
-	SendRequest(req, postParams, done, true, true);
+	auto done = [&goal](HTTPRequest& req, CURLMsg* msg) {
+		if (requestSucceeded(req, msg)) {
+			goal->uploaded = true;
+		} else {
+			LOG->Warn(
+			  "An error occurred while trying to upload a goal to the server.");
+		}
+	};
+	SendRequest(req, postParams, &done, true, true);
 }
 void
 DownloadManager::RefreshFavourites()
