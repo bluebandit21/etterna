@@ -124,7 +124,7 @@ GetActualGraphicOptionsString()
 	std::string sFormat = "%s %s %dx%d %d " + COLOR.GetValue() + " %d " +
 						  TEXTURE.GetValue() + " %dHz %s %s";
 	std::string sLog =
-	  ssprintf(sFormat,
+	  ssprintf(sFormat.c_str(),
 			   DISPLAY->GetApiDescription().c_str(),
 			   (params.windowed ? WINDOWED : FULLSCREEN).GetValue().c_str(),
 			   params.width,
@@ -797,11 +797,12 @@ CreateDisplay()
 	VideoModeParams params;
 	StepMania::GetPreferredVideoModeParams(params);
 
-	std::string error =
-	  ERROR_INITIALIZING_CARD.GetValue() + "\n\n" +
-	  ERROR_DONT_FILE_BUG.GetValue() + "\n\n" VIDEO_TROUBLESHOOTING_URL "\n\n" +
-	  ssprintf(ERROR_VIDEO_DRIVER.GetValue(), GetVideoDriverName().c_str()) +
-	  "\n\n";
+	std::string error = ERROR_INITIALIZING_CARD.GetValue() + "\n\n" +
+						ERROR_DONT_FILE_BUG.GetValue() +
+						"\n\n" VIDEO_TROUBLESHOOTING_URL "\n\n" +
+						ssprintf(ERROR_VIDEO_DRIVER.GetValue().c_str(),
+								 GetVideoDriverName().c_str()) +
+						"\n\n";
 
 	vector<std::string> asRenderers;
 	split(PREFSMAN->m_sVideoRenderers, ",", asRenderers, true);
@@ -843,9 +844,9 @@ CreateDisplay()
 			std::string sError =
 			  pRet->Init(params, PREFSMAN->m_bAllowUnacceleratedRenderer);
 			if (!sError.empty()) {
-				error +=
-				  ssprintf(ERROR_INITIALIZING.GetValue(), sRenderer.c_str()) +
-				  "\n" + sError;
+				error += ssprintf(ERROR_INITIALIZING.GetValue().c_str(),
+								  sRenderer.c_str()) +
+						 "\n" + sError;
 				SAFE_DELETE(pRet);
 				error += "\n\n\n";
 				continue;

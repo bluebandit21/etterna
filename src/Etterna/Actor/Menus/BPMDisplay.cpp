@@ -82,11 +82,13 @@ BPMDisplay::Update(float fDeltaTime)
 				SetText(
 				  (RandomFloat(0, 1) > 0.90f)
 					? static_cast<std::string>(QUESTIONMARKS_TEXT)
-					: ssprintf(static_cast<std::string>(BPM_FORMAT_STRING),
-							   RandomFloat(0, 999)));
+					: ssprintf(
+						static_cast<std::string>(BPM_FORMAT_STRING).c_str(),
+						RandomFloat(0, 999)));
 			else
-				SetText(ssprintf(static_cast<std::string>(BPM_FORMAT_STRING),
-								 RandomFloat(0, 999)));
+				SetText(
+				  ssprintf(static_cast<std::string>(BPM_FORMAT_STRING).c_str(),
+						   RandomFloat(0, 999)));
 		} else if (m_fBPMFrom == -1) {
 			m_fBPMFrom = m_fBPMTo;
 		}
@@ -94,8 +96,8 @@ BPMDisplay::Update(float fDeltaTime)
 
 	if (m_fBPMTo != -1) {
 		const float fActualBPM = GetActiveBPM();
-		SetText(
-		  ssprintf(static_cast<std::string>(BPM_FORMAT_STRING), fActualBPM));
+		SetText(ssprintf(static_cast<std::string>(BPM_FORMAT_STRING).c_str(),
+						 fActualBPM));
 	}
 }
 

@@ -543,25 +543,27 @@ FormatNumberAndSuffix(int i) -> std::string;
 auto
 GetLocalTime() -> struct tm;
 
-template<typename... Args>
-auto
-ssprintf(const char* format, Args... args) -> std::string
+__attribute__((__format__(__printf__, 1, 2))) inline std::string
+ssprintf(const char* format, ...)
 {
+	va_list args;
+	va_start(args, format);
 	// Extra space for '\0'
-	size_t size = snprintf(nullptr, 0, format, args...) + 1;
+	size_t size = snprintf(nullptr, 0, format, args) + 1;
 	std::unique_ptr<char[]> buf(new char[size]);
-	snprintf(buf.get(), size, format, args...);
+	snprintf(buf.get(), size, format, args);
 
 	// Don't want the '\0' inside
 	return std::string(buf.get(), buf.get() + size - 1);
 }
-
-template<typename... Args>
+/*
 auto
-ssprintf(const std::string& format, Args... args) -> std::string
+ssprintf(const std::string* format, ...) -> std::string
 {
-	return ssprintf(format.c_str(), args...);
-}
+	va_list args;
+	va_start(args, format);
+	return ssprintf(format.c_str(), args);
+}*/
 
 auto
 vssprintf(const char* fmt, va_list argList) -> std::string;

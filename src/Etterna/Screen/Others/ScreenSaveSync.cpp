@@ -29,9 +29,10 @@ GetPromptText()
 		vector<std::string> vs;
 		AdjustSync::GetSyncChangeTextSong(vs);
 		if (!vs.empty()) {
-			s += ssprintf(CHANGED_TIMING_OF.GetValue() + "\n"
-														 "%s:\n"
-														 "\n",
+			s += ssprintf((CHANGED_TIMING_OF.GetValue() + "\n"
+														  "%s:\n"
+														  "\n")
+							.c_str(),
 						  GAMESTATE->m_pCurSong->GetDisplayFullTitle().c_str());
 
 			s += join("\n", vs) + "\n\n";

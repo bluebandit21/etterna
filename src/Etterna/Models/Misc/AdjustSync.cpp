@@ -207,7 +207,7 @@ AdjustSync::GetSyncChangeTextGlobal(vector<std::string>& vsAddTo)
 
 		if (fabsf(fDelta) > 0.0001f) {
 			vsAddTo.push_back(
-			  ssprintf(GLOBAL_OFFSET_FROM.GetValue(),
+			  ssprintf(GLOBAL_OFFSET_FROM.GetValue().c_str(),
 					   fOld,
 					   fNew,
 					   (fDelta > 0 ? EARLIER : LATER).GetValue().c_str()));
@@ -235,7 +235,7 @@ AdjustSync::GetSyncChangeTextSong(vector<std::string>& vsAddTo)
 
 			if (fabsf(fDelta) > 0.0001f) {
 				vsAddTo.push_back(
-				  ssprintf(SONG_OFFSET_FROM.GetValue(),
+				  ssprintf(SONG_OFFSET_FROM.GetValue().c_str(),
 						   fOld,
 						   fNew,
 						   (fDelta > 0 ? EARLIER : LATER).GetValue().c_str()));

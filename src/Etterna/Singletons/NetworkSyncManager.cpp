@@ -1716,7 +1716,7 @@ NetworkSyncManager::DisplayStartupStatus()
 			return;
 		case 1:
 			if (curProtocol != nullptr)
-				sMessage = ssprintf(CONNECTION_SUCCESSFUL.GetValue(),
+				sMessage = ssprintf(CONNECTION_SUCCESSFUL.GetValue().c_str(),
 									curProtocol->serverName.c_str());
 			else
 				sMessage = CONNECTION_FAILED.GetValue();

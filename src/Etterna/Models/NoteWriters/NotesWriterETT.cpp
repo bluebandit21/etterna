@@ -194,7 +194,7 @@ static void
 write_tag(RageFile& f, std::string const& format, std::string const& value)
 {
 	if (!value.empty()) {
-		f.PutLine(ssprintf(format, SmEscape(value).c_str()));
+		f.PutLine(ssprintf(format.c_str(), SmEscape(value).c_str()));
 	}
 }
 
@@ -372,7 +372,7 @@ emplace_back_tag(std::vector<std::string>& lines,
 				 std::string const& value)
 {
 	if (!value.empty()) {
-		lines.emplace_back(ssprintf(format, SmEscape(value).c_str()));
+		lines.emplace_back(ssprintf(format.c_str(), SmEscape(value).c_str()));
 	}
 }
 

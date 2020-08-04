@@ -265,7 +265,7 @@ ScreenOptionsManageProfiles::HandleScreenMessage(const ScreenMessage& SM)
 				case ProfileAction_Clear: {
 					auto sTitle = pProfile->m_sDisplayName;
 					std::string sMessage = ssprintf(
-					  CONFIRM_CLEAR_PROFILE.GetValue(), sTitle.c_str());
+					  CONFIRM_CLEAR_PROFILE.GetValue().c_str(), sTitle.c_str());
 					ScreenPrompt::Prompt(
 					  SM_BackFromClearConfirm, sMessage, PROMPT_YES_NO);
 				} break;

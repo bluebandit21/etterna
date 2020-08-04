@@ -96,7 +96,7 @@ ScreenMapControllers::Init()
 			auto pn = PLAYER_1;
 			text.SetName("Label" + PlayerNumberToString(pn));
 			std::string sText =
-			  ssprintf(PLAYER_SLOTS.GetValue(),
+			  ssprintf(PLAYER_SLOTS.GetValue().c_str(),
 					   PlayerNumberToLocalizedString(pn).c_str());
 			text.SetText(sText);
 			ActorUtil::LoadAllCommands(text, m_sName);

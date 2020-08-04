@@ -326,7 +326,7 @@ ScreenTextEntry::FloatValidate(const std::string& sAnswer,
 	float f;
 	if (StringToFloat(sAnswer, f))
 		return true;
-	sErrorOut = ssprintf(INVALID_FLOAT.GetValue(), sAnswer.c_str());
+	sErrorOut = ssprintf(INVALID_FLOAT.GetValue().c_str(), sAnswer.c_str());
 	return false;
 }
 
@@ -338,7 +338,7 @@ ScreenTextEntry::IntValidate(const std::string& sAnswer, std::string& sErrorOut)
 	int f;
 	if (sAnswer >> f)
 		return true;
-	sErrorOut = ssprintf(INVALID_INT.GetValue(), sAnswer.c_str());
+	sErrorOut = ssprintf(INVALID_INT.GetValue().c_str(), sAnswer.c_str());
 	return false;
 }
 

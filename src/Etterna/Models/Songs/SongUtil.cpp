@@ -901,8 +901,8 @@ SongUtil::ValidateCurrentStepsChartName(const std::string& answer,
 
 	static const std::string sInvalidChars = "\\/:*?\"<>|";
 	if (strpbrk(answer.c_str(), sInvalidChars.c_str()) != nullptr) {
-		error =
-		  ssprintf(CHART_NAME_CANNOT_CONTAIN.GetValue(), sInvalidChars.c_str());
+		error = ssprintf(CHART_NAME_CANNOT_CONTAIN.GetValue().c_str(),
+						 sInvalidChars.c_str());
 		return false;
 	}
 
@@ -941,7 +941,7 @@ SongUtil::ValidateCurrentStepsCredit(const std::string& sAnswer,
 	// -Wolfman2000
 	static const std::string sInvalidChars = "\\/:*?\"<>|";
 	if (strpbrk(sAnswer.c_str(), sInvalidChars.c_str()) != nullptr) {
-		sErrorOut = ssprintf(AUTHOR_NAME_CANNOT_CONTAIN.GetValue(),
+		sErrorOut = ssprintf(AUTHOR_NAME_CANNOT_CONTAIN.GetValue().c_str(),
 							 sInvalidChars.c_str());
 		return false;
 	}
@@ -966,7 +966,8 @@ SongUtil::ValidateCurrentSongPreview(const std::string& answer,
 	const auto valid = DoesFileExist(path);
 	song->m_PreviewFile = real_file;
 	if (!valid) {
-		error = ssprintf(PREVIEW_DOES_NOT_EXIST.GetValue(), answer.c_str());
+		error =
+		  ssprintf(PREVIEW_DOES_NOT_EXIST.GetValue().c_str(), answer.c_str());
 	}
 	return valid;
 }
@@ -987,7 +988,8 @@ SongUtil::ValidateCurrentStepsMusic(const std::string& answer,
 	const auto valid = DoesFileExist(path);
 	pSteps->SetMusicFile(real_file);
 	if (!valid) {
-		error = ssprintf(MUSIC_DOES_NOT_EXIST.GetValue(), answer.c_str());
+		error =
+		  ssprintf(MUSIC_DOES_NOT_EXIST.GetValue().c_str(), answer.c_str());
 	}
 	return valid;
 }
@@ -1040,7 +1042,9 @@ SongUtil::GetPlayableStepsTypes(const Song* pSong, set<StepsType>& vOut)
 }
 
 void
-SongUtil::GetPlayableSteps(const Song* pSong, vector<Steps*>& vOut, bool filteringSteps)
+SongUtil::GetPlayableSteps(const Song* pSong,
+						   vector<Steps*>& vOut,
+						   bool filteringSteps)
 {
 	set<StepsType> vStepsType;
 	GetPlayableStepsTypes(pSong, vStepsType);

@@ -309,7 +309,8 @@ ScreenSelectMusic::CheckBackgroundRequests(bool bForce)
 }
 
 void
-ScreenSelectMusic::PlayCurrentSongSampleMusic(bool bForcePlay, bool bForceAccurate)
+ScreenSelectMusic::PlayCurrentSongSampleMusic(bool bForcePlay,
+											  bool bForceAccurate)
 {
 	if (g_bSampleMusicWaiting || bForcePlay) {
 		if (g_ScreenStartedLoadingAt.Ago() < SAMPLE_MUSIC_DELAY_INIT)
@@ -320,7 +321,7 @@ ScreenSelectMusic::PlayCurrentSongSampleMusic(bool bForcePlay, bool bForceAccura
 			return;
 
 		g_bSampleMusicWaiting = false;
-		
+
 		Song* pSong = GAMESTATE->m_pCurSong;
 		// Lua is what usually calls this with force on
 		// Since that bypasses a lot, update values if being forced.
@@ -355,7 +356,8 @@ ScreenSelectMusic::PlayCurrentSongSampleMusic(bool bForcePlay, bool bForceAccura
 		// will cause inconsistent music playing experience and an overall
 		// negative feel.
 		// But if chart preview is active, force it to be synced
-		PlayParams.bAccurateSync = GAMESTATE->m_bIsChartPreviewActive || bForceAccurate;
+		PlayParams.bAccurateSync =
+		  GAMESTATE->m_bIsChartPreviewActive || bForceAccurate;
 
 		GameSoundManager::PlayMusicParams FallbackMusic;
 		FallbackMusic.sFile = m_sLoopMusicPath;
@@ -604,7 +606,7 @@ ScreenSelectMusic::Input(const InputEventPlus& input)
 			  GAMESTATE->m_pCurSteps->GetChartKey());
 			MESSAGEMAN->Broadcast("DisplaySinglePlaylist");
 			SCREENMAN->SystemMessage(
-			  ssprintf(ADDED_TO_PLAYLIST.GetValue(),
+			  ssprintf(ADDED_TO_PLAYLIST.GetValue().c_str(),
 					   GAMESTATE->m_pCurSong->GetDisplayMainTitle().c_str(),
 					   SONGMAN->activeplaylist.c_str()));
 			return true;
