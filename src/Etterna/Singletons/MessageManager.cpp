@@ -218,6 +218,9 @@ MessageManager::Broadcast(Message& msg) const
 	// GAMESTATE is created before MESSAGEMAN, and has several
 	// BroadcastOnChangePtr members, so they all broadcast when they're
 	// initialized.
+	if (this == nullptr) {
+		printf("Spooky nullptr");
+	}
 	if (this != nullptr && m_Logging) {
 		LOG->Trace("MESSAGEMAN:Broadcast: %s", msg.GetName().c_str());
 	}
