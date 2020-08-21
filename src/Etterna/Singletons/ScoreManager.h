@@ -31,7 +31,7 @@ struct ScoresAtRate
 
 	auto HandleNoCCPB(HighScore& hs) -> bool;
 
-	[[nodiscard]] auto CreateNode(const int& rate) const -> XNode*;
+	[[nodiscard]] auto CreateNode(const int& rate) const -> SimpleXNode*;
 	void LoadFromNode(const XNode* node,
 					  const std::string& ck,
 					  const float& rate,
@@ -213,7 +213,7 @@ class ScoreManager
 
 	[[nodiscard]] auto CreateNode(
 	  const std::string& profileID =
-		PROFILEMAN->GetProfile(PLAYER_1)->m_sProfileID) const -> XNode*;
+		PROFILEMAN->GetProfile(PLAYER_1)->m_sProfileID) const -> SimpleXNode*;
 	void LoadFromNode(const XNode* node,
 					  const std::string& profileID =
 						PROFILEMAN->GetProfile(PLAYER_1)->m_sProfileID);

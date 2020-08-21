@@ -6,6 +6,7 @@
 
 class Song;
 class Steps;
+class SimpleXNode;
 
 // Player number stuff
 enum Difficulty
@@ -69,7 +70,7 @@ struct Playlist
 
 	std::vector<std::vector<std::string>> courseruns;
 
-	[[nodiscard]] auto CreateNode() const -> XNode*;
+	[[nodiscard]] auto CreateNode() const -> SimpleXNode*;
 	void LoadFromNode(const XNode* node);
 	auto GetNumCharts() -> int { return chartlist.size(); }
 	auto GetKeys() -> std::vector<std::string>;

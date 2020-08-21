@@ -102,7 +102,7 @@ bool
 XMLProfile::SaveEttXmlToDir(string sDir, const Profile* profile) const
 {
 	LOG->Trace("Saving Etterna Profile to: %s", sDir.c_str());
-	const std::unique_ptr<XNode> xml(SaveEttXmlCreateNode(profile));
+	const std::unique_ptr<SimpleXNode> xml(SaveEttXmlCreateNode(profile));
 	auto pDir = sDir + PROFILEMAN->GetStatsPrefix();
 	// Save Etterna.xml
 	const auto fn = pDir.append(ETT_XML);
@@ -143,12 +143,12 @@ XMLProfile::SaveEttXmlToDir(string sDir, const Profile* profile) const
 	return true;
 }
 
-XNode*
+SimpleXNode*
 XMLProfile::SaveFavoritesCreateNode(const Profile* profile) const
 {
 	CHECKPOINT_M("Saving the favorites node.");
 
-	auto favs = new XNode("Favorites");
+	auto favs = new SimpleXNode("Favorites");
 	for (auto& it : profile->FavoritedCharts) {
 		favs->AppendChild(it);
 	}
@@ -156,22 +156,22 @@ XMLProfile::SaveFavoritesCreateNode(const Profile* profile) const
 	return favs;
 }
 
-XNode*
+SimpleXNode*
 XMLProfile::SavePermaMirrorCreateNode(const Profile* profile) const
 {
 	CHECKPOINT_M("Saving the permamirror node.");
 
-	auto pmir = new XNode("PermaMirror");
+	auto pmir = new SimpleXNode("PermaMirror");
 	for (auto& it : profile->PermaMirrorCharts) {
 		pmir->AppendChild(it);
 	}
 	return pmir;
 }
 
-XNode*
+SimpleXNode*
 GoalsForChart::CreateNode() const
 {
-	auto cg = new XNode("GoalsForChart");
+	auto cg = new SimpleXNode("GoalsForChart");
 
 	if (!goals.empty()) {
 		cg->AppendAttr("Key", goals[0].chartkey);
@@ -181,12 +181,12 @@ GoalsForChart::CreateNode() const
 	return cg;
 }
 
-XNode*
+SimpleXNode*
 XMLProfile::SaveScoreGoalsCreateNode(const Profile* profile) const
 {
 	CHECKPOINT_M("Saving the scoregoals node.");
 
-	auto goals = new XNode("ScoreGoals");
+	auto goals = new SimpleXNode("ScoreGoals");
 	for (auto& i : profile->goalmap) {
 		const auto& cg = i.second;
 		goals->AppendChild(cg.CreateNode());
@@ -194,12 +194,12 @@ XMLProfile::SaveScoreGoalsCreateNode(const Profile* profile) const
 	return goals;
 }
 
-XNode*
+SimpleXNode*
 XMLProfile::SavePlaylistsCreateNode(const Profile* profile) const
 {
 	CHECKPOINT_M("Saving the playlists node.");
 
-	auto playlists = new XNode("Playlists");
+	auto playlists = new SimpleXNode("Playlists");
 	const auto& pls = profile->allplaylists;
 	for (auto& i : pls) {
 		if (!i.first.empty() && i.first != "Favorites")
@@ -278,12 +278,12 @@ XMLProfile::LoadPlaylistsFromNode(const XNode* pNode)
 	}
 }
 
-XNode*
+SimpleXNode*
 XMLProfile::SaveEttGeneralDataCreateNode(const Profile* profile) const
 {
 	CHECKPOINT_M("Saving the general node.");
 
-	auto pGeneralDataNode = new XNode("GeneralData");
+	auto pGeneralDataNode = new SimpleXNode("GeneralData");
 
 	// TRICKY: These are write-only elements that are normally never read
 	// again. This data is required by other apps (like internet ranking),
@@ -458,7 +458,7 @@ XMLProfile::LoadEttGeneralDataFromNode(const XNode* pNode)
 	LUA->Release(L);
 }
 
-XNode*
+SimpleXNode*
 XMLProfile::SaveEttScoresCreateNode(const Profile* profile) const
 {
 	CHECKPOINT_M("Saving the player scores node.");
@@ -546,10 +546,10 @@ XMLProfile::LoadEttXmlFromNode(const XNode* xml)
 	return ProfileLoadResult_Success;
 }
 
-XNode*
+SimpleXNode*
 XMLProfile::SaveEttXmlCreateNode(const Profile* profile) const
 {
-	auto xml = new XNode("Stats");
+	auto xml = new SimpleXNode("Stats");
 	xml->AppendChild(SaveEttGeneralDataCreateNode(profile));
 
 	if (!profile->FavoritedCharts.empty())

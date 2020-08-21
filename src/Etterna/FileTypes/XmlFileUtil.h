@@ -20,16 +20,17 @@ LoadFromFileShowErrors(XNode& xml, RageFileBasic& f) -> bool;
 void
 Load(XNode* pNode, const std::string& sXml, std::string& sErrorOut);
 auto
-GetXML(const XNode* pNode, RageFileBasic& f, bool bWriteTabs = true) -> bool;
+GetXML(const SimpleXNode* pNode, RageFileBasic& f, bool bWriteTabs = true)
+  -> bool;
 auto
-GetXML(const XNode* pNode) -> std::string;
+GetXML(const SimpleXNode* pNode) -> std::string;
 auto
-SaveToFile(const XNode* pNode,
+SaveToFile(const SimpleXNode* pNode,
 		   const std::string& sFile,
 		   const std::string& sStylesheet = "",
 		   bool bWriteTabs = true) -> bool;
 auto
-SaveToFile(const XNode* pNode,
+SaveToFile(const SimpleXNode* pNode,
 		   RageFileBasic& f,
 		   const std::string& sStylesheet = "",
 		   bool bWriteTabs = true) -> bool;
@@ -39,7 +40,7 @@ AnnotateXNodeTree(XNode* pNode, const std::string& sFile);
 void
 CompileXNodeTree(XNode* pNode, const std::string& sFile);
 auto
-XNodeFromTable(lua_State* L) -> XNode*;
+XNodeFromTable(lua_State* L) -> SimpleXNode*;
 
 void
 MergeIniUnder(XNode* pFrom, XNode* pTo);

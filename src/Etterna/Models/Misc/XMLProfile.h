@@ -32,14 +32,16 @@ class XMLProfile
 
 	void LoadScreenshotDataFromNode(const XNode* pNode);
 
-	auto SaveEttGeneralDataCreateNode(const Profile* profile) const -> XNode*;
-	auto SaveEttScoresCreateNode(const Profile* profile) const -> XNode*;
-	auto SaveEttXmlCreateNode(const Profile* profile) const -> XNode*;
+	auto SaveEttGeneralDataCreateNode(const Profile* profile) const
+	  -> SimpleXNode*;
+	auto SaveEttScoresCreateNode(const Profile* profile) const -> SimpleXNode*;
+	auto SaveEttXmlCreateNode(const Profile* profile) const -> SimpleXNode*;
 
-	auto SaveFavoritesCreateNode(const Profile* profile) const -> XNode*;
-	auto SavePermaMirrorCreateNode(const Profile* profile) const -> XNode*;
-	auto SaveScoreGoalsCreateNode(const Profile* profile) const -> XNode*;
-	auto SavePlaylistsCreateNode(const Profile* profile) const -> XNode*;
+	auto SaveFavoritesCreateNode(const Profile* profile) const -> SimpleXNode*;
+	auto SavePermaMirrorCreateNode(const Profile* profile) const
+	  -> SimpleXNode*;
+	auto SaveScoreGoalsCreateNode(const Profile* profile) const -> SimpleXNode*;
+	auto SavePlaylistsCreateNode(const Profile* profile) const -> SimpleXNode*;
 	auto SaveScreenshotDataCreateNode(const Profile* profile) const -> XNode*;
 
 	std::string profiledir;

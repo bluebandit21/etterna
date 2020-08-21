@@ -8,6 +8,7 @@
 #include "RageUtil/Utils/RageUtil_AutoPtr.h"
 
 class XNode;
+class SimpleXNode;
 struct RadarValues;
 struct lua_State;
 
@@ -147,7 +148,7 @@ struct HighScore
 	auto operator!=(HighScore const& other) const -> bool;
 
 	[[nodiscard]] auto CreateNode() const -> XNode*;
-	[[nodiscard]] auto CreateEttNode() const -> XNode*;
+	[[nodiscard]] auto CreateEttNode() const -> SimpleXNode*;
 	void LoadFromNode(const XNode* pNode);
 	void LoadFromEttNode(const XNode* pNode);
 

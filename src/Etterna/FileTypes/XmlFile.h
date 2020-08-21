@@ -88,7 +88,104 @@ using XNodes = std::vector<XNode*>;
 		 (Var) = (Var##Iter != (pNode)->GetChildrenEnd()) ? *Var##Iter : NULL, \
 								Var##Iter != (pNode)->GetChildrenEnd();        \
 		 ++Var##Iter)
+/** @brief Loop through each child, using a constant iterator. */
+#define FOREACH_CONST_Child_Simple(pNode, Var)                                 \
+	const SimpleXNode* Var = NULL;                                             \
+	for (std::vector<SimpleXNode*>::const_iterator                             \
+		   Var##Iter = (pNode)->GetChildrenBegin();                            \
+		 (Var) = (Var##Iter != (pNode)->GetChildrenEnd()) ? *Var##Iter : NULL, \
+		   Var##Iter != (pNode)->GetChildrenEnd();                             \
+		 ++Var##Iter)
+class SimpleXNode
+{
+  private:
+	std::vector<SimpleXNode*> m_childs; // child nodes
+  public:
+	inline static const std::string TEXT_ATTRIBUTE = std::string("__TEXT__");
+	std::string m_sName;
+	auto GetName() const -> const std::string& { return m_sName; }
+	XAttrs m_attrs; // attributes
+	SimpleXNode(const std::string& sName) { m_sName = sName; }
+	SimpleXNode* AppendChild(SimpleXNode* node)
+	{
+		assert(node->m_sName.size());
+		m_childs.push_back(node);
+		return node;
+	}
+	XNodeValue* AppendAttr(const std::string& sName)
+	{
+		assert(sName.size());
+		std::pair<XAttrs::iterator, bool> ret =
+		  m_attrs.insert(make_pair(sName, (XNodeValue*)nullptr));
+		if (ret.second)
+			ret.first->second = new XNodeStringValue;
+		return ret.first->second; // already existed
+	}
+	template<typename T>
+	auto AppendAttr(const std::string& sName, T value) -> XNodeValue*
+	{
+		XNodeValue* pVal = AppendAttr(sName);
+		pVal->SetValue(value);
+		return pVal;
+	}
+	auto AppendChild(const std::string& sName) -> SimpleXNode*
+	{
+		auto* p = new SimpleXNode(sName);
+		return AppendChild(p);
+	}
+	template<typename T>
+	auto AppendChild(const std::string& sName, T value) -> SimpleXNode*
+	{
+		SimpleXNode* p = AppendChild(sName);
+		p->AppendAttr(SimpleXNode::TEXT_ATTRIBUTE, value);
+		return p;
+	}
+	auto ChildrenEmpty() const -> bool { return m_childs.empty(); }
+	const XNodeValue* GetAttr(const std::string& attrname) const
+	{
+		XAttrs::const_iterator it = m_attrs.find(attrname);
+		if (it != m_attrs.end())
+			return it->second;
+		return nullptr;
+	}
+	auto GetChildrenBegin() -> std::vector<SimpleXNode*>::iterator
+	{
+		return m_childs.begin();
+	}
+	auto GetChildrenBegin() const -> std::vector<SimpleXNode*>::const_iterator
+	{
+		return m_childs.begin();
+	}
+	auto GetChildrenEnd() -> std::vector<SimpleXNode*>::iterator
+	{
+		return m_childs.end();
+	}
+	auto GetChildrenEnd() const -> std::vector<SimpleXNode*>::const_iterator
+	{
+		return m_childs.end();
+	}
+	XNodeValue* AppendAttrFrom(const std::string& sName,
+							   XNodeValue* pValue,
+							   bool bOverwrite = true)
+	{
+		assert(sName.size());
+		std::pair<XAttrs::iterator, bool> ret =
+		  m_attrs.insert(std::make_pair(sName, (XNodeValue*)nullptr));
+		if (!ret.second) // already existed
+		{
+			if (bOverwrite) {
+				delete ret.first->second;
+			} else {
+				delete pValue;
+				pValue = ret.first->second;
+			}
+		}
 
+		ret.first->second = pValue;
+
+		return ret.first->second;
+	};
+};
 class XNode
 {
   private:

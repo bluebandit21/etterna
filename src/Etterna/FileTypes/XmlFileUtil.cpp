@@ -413,7 +413,7 @@ LoadInternal(XNode* pNode,
 }
 
 bool
-GetXMLInternal(const XNode* pNode,
+GetXMLInternal(const SimpleXNode* pNode,
 			   RageFileBasic& f,
 			   bool bWriteTabs,
 			   int& iTabBase)
@@ -456,7 +456,7 @@ GetXMLInternal(const XNode* pNode,
 		if (!pNode->ChildrenEmpty())
 			iTabBase++;
 
-		FOREACH_CONST_Child(
+		FOREACH_CONST_Child_Simple(
 		  pNode,
 		  p) if (!GetXMLInternal(p, f, bWriteTabs, iTabBase)) return false;
 
@@ -502,7 +502,7 @@ XmlFileUtil::Load(XNode* pNode, const std::string& sXml, std::string& sErrorOut)
 }
 
 bool
-XmlFileUtil::GetXML(const XNode* pNode, RageFileBasic& f, bool bWriteTabs)
+XmlFileUtil::GetXML(const SimpleXNode* pNode, RageFileBasic& f, bool bWriteTabs)
 {
 	int iTabBase = 0;
 	InitEntities();
@@ -510,7 +510,7 @@ XmlFileUtil::GetXML(const XNode* pNode, RageFileBasic& f, bool bWriteTabs)
 }
 
 std::string
-XmlFileUtil::GetXML(const XNode* pNode)
+XmlFileUtil::GetXML(const SimpleXNode* pNode)
 {
 	RageFileObjMem f;
 	int iTabBase = 0;
@@ -520,7 +520,7 @@ XmlFileUtil::GetXML(const XNode* pNode)
 }
 
 bool
-XmlFileUtil::SaveToFile(const XNode* pNode,
+XmlFileUtil::SaveToFile(const SimpleXNode* pNode,
 						RageFileBasic& f,
 						const std::string& sStylesheet,
 						bool bWriteTabs)
@@ -540,7 +540,7 @@ XmlFileUtil::SaveToFile(const XNode* pNode,
 }
 
 bool
-XmlFileUtil::SaveToFile(const XNode* pNode,
+XmlFileUtil::SaveToFile(const SimpleXNode* pNode,
 						const std::string& sFile,
 						const std::string& sStylesheet,
 						bool bWriteTabs)
@@ -749,19 +749,19 @@ XmlFileUtil::CompileXNodeTree(XNode* pNode, const std::string& sFile)
 }
 
 namespace {
-XNode*
-XNodeFromTableRecursive(lua_State* L,
-						const std::string& sName,
-						LuaReference& ProcessedTables)
+SimpleXNode*
+SimpleXNodeFromTableRecursive(lua_State* L,
+							  const std::string& sName,
+							  LuaReference& ProcessedTables)
 {
-	auto* pNode = new XNode(sName);
+	auto* pNode = new SimpleXNode(sName);
 
 	// Set the value of the node to the table.
 	{
 		auto* pValue = new XNodeLuaValue;
 		lua_pushvalue(L, -1);
 		pValue->SetValueFromStack(L);
-		pNode->AppendAttrFrom(XNode::TEXT_ATTRIBUTE, pValue);
+		pNode->AppendAttrFrom(SimpleXNode::TEXT_ATTRIBUTE, pValue);
 	}
 
 	// Iterate over the table, pulling out attributes and tables to process.
@@ -835,8 +835,8 @@ XNodeFromTableRecursive(lua_State* L,
 		lua_pop(L, 1); // pop ProcessedTables
 
 		NodeToAdd.PushSelf(L);
-		XNode* pNewNode =
-		  XNodeFromTableRecursive(L, sNodeName, ProcessedTables);
+		SimpleXNode* pNewNode =
+		  SimpleXNodeFromTableRecursive(L, sNodeName, ProcessedTables);
 		if (pNewNode)
 			pNode->AppendChild(pNewNode);
 
@@ -860,7 +860,7 @@ XNodeFromTableRecursive(lua_State* L,
  * first table seen will have a corresponding XNode.
  *
  * Users of the resulting XNode may access the original table via PushValue. */
-XNode*
+SimpleXNode*
 XmlFileUtil::XNodeFromTable(lua_State* L)
 {
 	/* Maintain a set of references that we've created. Tables may loop; XNode
@@ -870,7 +870,7 @@ XmlFileUtil::XNodeFromTable(lua_State* L)
 	lua_newtable(L);
 	ProcessedTables.SetFromStack(L);
 
-	return XNodeFromTableRecursive(L, "Layer", ProcessedTables);
+	return SimpleXNodeFromTableRecursive(L, "Layer", ProcessedTables);
 }
 
 /* Move nodes from pFrom into pTo which don't already exist in pTo. For

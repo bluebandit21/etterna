@@ -14,6 +14,7 @@ class Song;
 class Steps;
 class Profile;
 class XNode;
+class SimpleXNode;
 
 void
 AppendOctal(int n, int digits, std::string& out);
@@ -159,7 +160,9 @@ GetAllSongGenres(vector<std::string>& vsOut);
 void
 GetPlayableStepsTypes(const Song* pSong, std::set<StepsType>& vOut);
 void
-GetPlayableSteps(const Song* pSong, vector<Steps*>& vOut, bool filteringSteps = false);
+GetPlayableSteps(const Song* pSong,
+				 vector<Steps*>& vOut,
+				 bool filteringSteps = false);
 auto
 IsStepsTypePlayable(Song* pSong, StepsType st) -> bool;
 auto
@@ -205,7 +208,7 @@ class SongID
 		return sDir == other.sDir;
 	}
 
-	auto CreateNode() const -> XNode*;
+	auto CreateNode() const -> SimpleXNode*;
 	void LoadFromNode(const XNode* pNode);
 	void LoadFromString(const char* dir);
 	void FromString(std::string _sDir) { sDir = std::move(_sDir); }

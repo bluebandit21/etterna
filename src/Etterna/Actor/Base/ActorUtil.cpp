@@ -226,7 +226,7 @@ ActorUtil::LoadFromNode(const XNode* _pNode, Actor* pParentActor)
 }
 
 namespace {
-XNode*
+SimpleXNode*
 LoadXNodeFromLuaShowErrors(const std::string& sFile)
 {
 	std::string sScript;
@@ -243,7 +243,7 @@ LoadXNodeFromLuaShowErrors(const std::string& sFile)
 		return nullptr;
 	}
 
-	XNode* pRet = nullptr;
+	SimpleXNode* pRet = nullptr;
 	if (ActorUtil::LoadTableFromStackShowErrors(L))
 		pRet = XmlFileUtil::XNodeFromTable(L);
 
@@ -293,7 +293,8 @@ ActorUtil::MakeActor(const std::string& sPath_, Actor* pParentActor)
 	auto ft = GetFileType(sPath);
 	switch (ft) {
 		case FT_Lua: {
-			std::unique_ptr<XNode> pNode(LoadXNodeFromLuaShowErrors(sPath));
+			std::unique_ptr<SimpleXNode> pNode(
+			  LoadXNodeFromLuaShowErrors(sPath));
 			if (pNode.get() == nullptr) {
 				// XNode will warn about the error
 				return new Actor;

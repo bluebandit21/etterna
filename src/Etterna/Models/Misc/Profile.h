@@ -80,7 +80,7 @@ class ScoreGoal
 	// what happens when individual score deletion is possibly added -mina
 	std::string scorekey = "";
 
-	[[nodiscard]] auto CreateNode() const -> XNode*;
+	[[nodiscard]] auto CreateNode() const -> SimpleXNode*;
 	void LoadFromNode(const XNode* pNode);
 
 	[[nodiscard]] auto GetPBUpTo() const -> HighScore*;
@@ -105,7 +105,7 @@ struct GoalsForChart
 	auto Get() -> std::vector<ScoreGoal>& { return goals; }
 	std::vector<ScoreGoal> goals;
 
-	[[nodiscard]] auto CreateNode() const -> XNode*;
+	[[nodiscard]] auto CreateNode() const -> SimpleXNode*;
 	void LoadFromNode(const XNode* pNode);
 };
 

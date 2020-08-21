@@ -116,14 +116,14 @@ struct TheGreatBazoinkazoinkInTheSky
 		load_calc_params_from_disk();
 #endif
 #endif
-		
+
 		// setup our data pointers
 		_last_mri = std::make_unique<metaRowInfo>();
 		_mri = std::make_unique<metaRowInfo>();
 		_last_mhi = std::make_unique<metaHandInfo>();
 		_mhi = std::make_unique<metaHandInfo>();
 	}
-	
+
 	void operator()()
 	{
 		hand = 0;
@@ -301,10 +301,7 @@ struct TheGreatBazoinkazoinkInTheSky
 		_diffz.full_reset();
 	}
 
-	void reset_row_sequencing()
-	{
-		_mitvi.reset();
-	}
+	void reset_row_sequencing() { _mitvi.reset(); }
 
 	void handle_dependent_interval_end(const int& itv)
 	{
@@ -465,9 +462,9 @@ struct TheGreatBazoinkazoinkInTheSky
 
 	[[nodiscard]] static auto make_mod_param_node(
 	  const std::vector<std::pair<std::string, float*>>& param_map,
-	  const std::string& name) -> XNode*
+	  const std::string& name) -> SimpleXNode*
 	{
-		auto* pmod = new XNode(name);
+		auto* pmod = new SimpleXNode(name);
 		for (const auto& p : param_map) {
 			pmod->AppendChild(p.first, std::to_string(*p.second));
 		}
@@ -523,8 +520,7 @@ struct TheGreatBazoinkazoinkInTheSky
 		}
 
 		// If it isn't loaded or we are forcing a load, load it
-		if (params.ChildrenEmpty() || bForce)
-		{
+		if (params.ChildrenEmpty() || bForce) {
 			if (!XmlFileUtil::LoadFromFileShowErrors(params, *pFile)) {
 				return;
 			}
@@ -558,9 +554,9 @@ struct TheGreatBazoinkazoinkInTheSky
 		load_params_for_mod(&params, _tt2._params, _tt2.name);
 	}
 
-	[[nodiscard]] auto make_param_node() const -> XNode*
+	[[nodiscard]] auto make_param_node() const -> SimpleXNode*
 	{
-		auto* calcparams = new XNode("CalcParams");
+		auto* calcparams = new SimpleXNode("CalcParams");
 		calcparams->AppendAttr("vers", GetCalcVersion());
 
 		calcparams->AppendChild(make_mod_param_node(_s._params, _s.name));
@@ -591,7 +587,7 @@ struct TheGreatBazoinkazoinkInTheSky
 	void write_params_to_disk() const
 	{
 		const auto fn = calc_params_xml;
-		const std::unique_ptr<XNode> xml(make_param_node());
+		const std::unique_ptr<SimpleXNode> xml(make_param_node());
 
 		std::string err;
 		RageFile f;

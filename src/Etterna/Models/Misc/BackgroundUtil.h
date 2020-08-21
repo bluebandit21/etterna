@@ -3,6 +3,7 @@
 
 class Song;
 class XNode;
+class SimpleXNode;
 
 extern const std::string RANDOM_BACKGROUND_FILE;
 extern const std::string NO_SONG_BG_FILE;
@@ -19,14 +20,17 @@ struct BackgroundDef
 {
 	bool operator<(const BackgroundDef& other) const;
 	bool operator==(const BackgroundDef& other) const;
-	[[nodiscard]] bool IsEmpty() const { return m_sFile1.empty() && m_sFile2.empty(); }
+	[[nodiscard]] bool IsEmpty() const
+	{
+		return m_sFile1.empty() && m_sFile2.empty();
+	}
 	std::string m_sEffect; // "" == automatically choose
 	std::string m_sFile1;  // must not be ""
 	std::string m_sFile2;  // may be ""
 	std::string m_sColor1; // "" == use default
 	std::string m_sColor2; // "" == use default
 
-	[[nodiscard]] XNode* CreateNode() const;
+	[[nodiscard]] SimpleXNode* CreateNode() const;
 
 	/** @brief Set up the BackgroundDef with default values. */
 	BackgroundDef()

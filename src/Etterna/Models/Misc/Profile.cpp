@@ -521,10 +521,10 @@ Profile::FillGoalTable()
 	sort(goaltable.begin(), goaltable.end(), comp);
 }
 
-XNode*
+SimpleXNode*
 ScoreGoal::CreateNode() const
 {
-	auto* pNode = new XNode("ScoreGoal");
+	auto* pNode = new SimpleXNode("ScoreGoal");
 
 	pNode->AppendChild("Rate", rate);
 	pNode->AppendChild("Percent", percent);

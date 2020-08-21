@@ -974,9 +974,9 @@ ScoreManager::RegisterScoreInProfile(HighScore* hs_, const string& profileID)
 
 // Write scores to xml
 auto
-ScoresAtRate::CreateNode(const int& rate) const -> XNode*
+ScoresAtRate::CreateNode(const int& rate) const -> SimpleXNode*
 {
-	auto* o = new XNode("ScoresAt");
+	auto* o = new SimpleXNode("ScoresAt");
 	auto saved = 0;
 
 	// prune out sufficiently low scores
@@ -1027,9 +1027,9 @@ ScoresForChart::CreateNode(const string& ck) const -> XNode*
 }
 
 auto
-ScoreManager::CreateNode(const string& profileID) const -> XNode*
+ScoreManager::CreateNode(const string& profileID) const -> SimpleXNode*
 {
-	auto* o = new XNode("PlayerScores");
+	auto* o = new SimpleXNode("PlayerScores");
 	for (const auto& ch : pscores.find(profileID)->second) {
 		auto* const node = ch.second.CreateNode(ch.first);
 		if (!node->ChildrenEmpty()) {

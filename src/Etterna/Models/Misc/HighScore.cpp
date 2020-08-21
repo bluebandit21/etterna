@@ -78,7 +78,7 @@ struct HighScoreImpl
 
 	HighScoreImpl();
 
-	[[nodiscard]] auto CreateEttNode() const -> XNode*;
+	[[nodiscard]] auto CreateEttNode() const -> SimpleXNode*;
 	void LoadFromEttNode(const XNode* pNode);
 	[[nodiscard]] auto GetWifeGrade() const -> Grade;
 	void UnloadReplayData();
@@ -177,9 +177,9 @@ HighScoreImpl::HighScoreImpl()
 }
 
 auto
-HighScoreImpl::CreateEttNode() const -> XNode*
+HighScoreImpl::CreateEttNode() const -> SimpleXNode*
 {
-	auto* pNode = new XNode("Score");
+	auto* pNode = new SimpleXNode("Score");
 
 	if (ScoreKey.empty()) {
 		pNode->AppendAttr("Key",
@@ -1201,7 +1201,7 @@ HighScore::operator!=(const HighScore& other) const -> bool
 }
 
 auto
-HighScore::CreateEttNode() const -> XNode*
+HighScore::CreateEttNode() const -> SimpleXNode*
 {
 	return m_Impl->CreateEttNode();
 }

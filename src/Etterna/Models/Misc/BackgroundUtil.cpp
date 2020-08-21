@@ -35,10 +35,10 @@ BackgroundDef::operator==(const BackgroundDef& other) const
 		   m_sColor2 == other.m_sColor2;
 }
 
-XNode*
+SimpleXNode*
 BackgroundDef::CreateNode() const
 {
-	auto pNode = new XNode("BackgroundDef");
+	auto pNode = new SimpleXNode("BackgroundDef");
 
 	if (!m_sEffect.empty())
 		pNode->AppendAttr("Effect", m_sEffect);

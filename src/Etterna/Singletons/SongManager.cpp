@@ -508,17 +508,17 @@ Playlist::DeleteChart(int i)
 auto
 Playlist::CreateNode() const -> XNode*
 {
-	auto pl = new XNode("Playlist");
+	auto pl = new SimpleXNode("Playlist");
 	pl->AppendAttr("Name", name);
 
-	auto cl = new XNode("Chartlist");
+	auto cl = new SimpleXNode("Chartlist");
 	FOREACH_CONST(Chart, chartlist, ch)
 	cl->AppendChild(ch->CreateNode(true));
 
-	auto cr = new XNode("CourseRuns");
+	auto cr = new SimpleXNode("CourseRuns");
 	FOREACH_CONST(vector<string>, courseruns, run)
 	{
-		auto r = new XNode("Run");
+		auto r = new SimpleXNode("Run");
 		FOREACH_CONST(string, *run, sk)
 		r->AppendChild(*sk);
 		cr->AppendChild(r);

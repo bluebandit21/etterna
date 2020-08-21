@@ -1134,10 +1134,10 @@ SongID::ToSong() const
 	return pRet;
 }
 
-XNode*
+SimmpleXNode*
 SongID::CreateNode() const
 {
-	auto* pNode = new XNode("Song");
+	auto* pNode = new SimpleXNode("Song");
 	pNode->AppendAttr("Dir", sDir);
 	return pNode;
 }
