@@ -500,6 +500,17 @@ ScreenDebugOverlay::Input(const InputEventPlus& input)
 
 	FOREACH_CONST(IDebugLine*, *g_pvpSubscribers, p)
 	{
+#ifdef __APPLE__
+		if (!INPUTFILTER->IsBeingPressed(
+			  DeviceInput(DEVICE_KEYBOARD, KEY_CAPSLOCK))) {
+			// Only trigger debug events on macOS if the caps lock key is held.
+			// TODO: Use fn key instead?
+			//  As far as I can tell, it's impossible to get the state of the fn
+			//  key
+			// from the IOHIDDevice layer we're using for kb input on macOS.
+			break;
+		}
+#endif
 		std::string sPageName = (*p)->GetPageName();
 
 		int i = p - g_pvpSubscribers->begin();
