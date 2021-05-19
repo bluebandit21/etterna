@@ -7,7 +7,7 @@ set(CPACK_COMPONENT_ETTERNA_REQUIRED TRUE)  # Require Etterna component to be in
 
 # Custom Variables
 if(APPLE)
-set(INSTALL_DIR "Etterna/.Etterna/Etterna")
+set(INSTALL_DIR ".Etterna/Etterna")
 else()
 set(INSTALL_DIR "Etterna")
 endif()
@@ -47,9 +47,10 @@ if(WIN32)
 elseif(APPLE)
     # CPack Packaging
     set(CPACK_GENERATOR DragNDrop)
+    #Force the user to run the installer
+    set(CPACK_DMG_DISABLE_APPLICATIONS_SYMLINK ON)
     set(CPACK_DMG_VOLUME_NAME EtternaInstaller)
-    execute_process(COMMAND "osacompile -o EtternaInstaller.app ../EtternaInstaller.scpt")
-    install(DIRECTORY EtternaInstaller.app  COMPONENT Etterna DESTINATION "Etterna")
+    install(DIRECTORY EtternaInstaller.app  COMPONENT Etterna DESTINATION "." USE_SOURCE_PERMISSIONS)
     install(TARGETS Etterna COMPONENT Etterna DESTINATION ${INSTALL_DIR})
     install(FILES ${PROJECT_BINARY_DIR}/gn_crashpad/crashpad_handler COMPONENT Etterna DESTINATION ${INSTALL_DIR})
 endif()
