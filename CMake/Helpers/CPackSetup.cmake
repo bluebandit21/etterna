@@ -47,9 +47,10 @@ if(WIN32)
 elseif(APPLE)
     # CPack Packaging
     set(CPACK_GENERATOR DragNDrop)
-    set(CPACK_DMG_VOLUME_NAME Etterna)
-
-    install(TARGETS Etterna COMPONENT Etterna DESTINATION Etterna)
+    set(CPACK_DMG_VOLUME_NAME EtternaInstaller)
+    execute_process(COMMAND "osacompile -o EtternaInstaller.app ../EtternaInstaller.scpt")
+    install(DIRECTORY EtternaInstaller.app  COMPONENT Etterna DESTINATION "Etterna")
+    install(TARGETS Etterna COMPONENT Etterna DESTINATION ${INSTALL_DIR})
     install(FILES ${PROJECT_BINARY_DIR}/gn_crashpad/crashpad_handler COMPONENT Etterna DESTINATION ${INSTALL_DIR})
 endif()
 
