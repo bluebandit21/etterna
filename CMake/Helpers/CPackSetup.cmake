@@ -6,7 +6,11 @@ set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/CMake/CPack/license_instal
 set(CPACK_COMPONENT_ETTERNA_REQUIRED TRUE)  # Require Etterna component to be installed
 
 # Custom Variables
+if(APPLE)
+set(INSTALL_DIR "Etterna/.Etterna/Etterna")
+else()
 set(INSTALL_DIR "Etterna")
+endif()
 
 # Windows Specific CPack
 if(WIN32)
