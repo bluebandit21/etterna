@@ -9,6 +9,7 @@ set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
 
 # Set AppBundle icon
 set(MACOSX_BUNDLE_ICON_FILE etterna.icns)
+set(MACOSX_BUNDLE_GUI_IDENTIFIER "org.Etterna.Etterna")
 set_property(SOURCE CMake/CPack/macOS/etterna.icns PROPERTY MACOSX_PACKAGE_LOCATION "Resources")
 target_sources(Etterna PUBLIC CMake/CPack/macOS/etterna.icns)
 
