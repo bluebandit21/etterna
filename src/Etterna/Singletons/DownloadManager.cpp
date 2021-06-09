@@ -419,7 +419,7 @@ DownloadManager::DownloadAndInstallPack(DownloadablePack* pack, bool mirror)
 		}
 	}
 	if (downloadingPacks >= maxPacksToDownloadAtOnce) {
-		DLMAN->DownloadQueue.push_back(std::make_pair(pack, mirror));
+		DownloadQueue.push_back(std::make_pair(pack, mirror));
 		return nullptr;
 	}
 	Download* dl = DownloadAndInstallPack(mirror ? pack->mirror : pack->url,
@@ -544,7 +544,7 @@ DownloadManager::UpdatePacks(float fDeltaSeconds)
 		auto it = DownloadQueue.begin();
 		DownloadQueue.pop_front();
 		auto pack = *it;
-		auto* dl = DLMAN->DownloadAndInstallPack(pack.first, pack.second);
+		auto* dl = DownloadAndInstallPack(pack.first, pack.second);
 		if (dl)
 			dl->p_Pack->downloading = true;
 	}
@@ -675,11 +675,11 @@ DownloadManager::LoggedIn()
 void
 DownloadManager::AddFavorite(const string& chartkey)
 {
-	string req = "user/" + DLMAN->sessionUser + "/favorites";
-	DLMAN->favorites.push_back(chartkey);
-	auto done = [req](HTTPRequest& requ, CURLMsg*) {
+	string req = "user/" + sessionUser + "/favorites";
+	favorites.push_back(chartkey);
+	auto done = [req, this](HTTPRequest& requ, CURLMsg*) {
 		Locator::getLogger()->warn(
-		  "Favorited: {}{}{}", requ.result, req, DLMAN->sessionUser);
+		  "Favorited: {}{}{}", requ.result, req, sessionUser);
 	};
 	SendRequest(req, { make_pair("chartkey", chartkey) }, done, true, true);
 }
@@ -688,11 +688,10 @@ void
 DownloadManager::RemoveFavorite(const string& chartkey)
 {
 	// favorites should be an unordered set, probably
-	auto it =
-	  std::find(DLMAN->favorites.begin(), DLMAN->favorites.end(), chartkey);
-	if (it != DLMAN->favorites.end())
-		DLMAN->favorites.erase(it);
-	string req = "user/" + DLMAN->sessionUser + "/favorites/" + chartkey;
+	auto it = std::find(favorites.begin(), favorites.end(), chartkey);
+	if (it != favorites.end())
+		favorites.erase(it);
+	string req = "user/" + sessionUser + "/favorites/" + chartkey;
 	auto done = [](HTTPRequest& req, CURLMsg*) {
 
 	};
@@ -705,7 +704,7 @@ DownloadManager::RemoveFavorite(const string& chartkey)
 void
 DownloadManager::RemoveGoal(const string& chartkey, float wife, float rate)
 {
-	string req = "user/" + DLMAN->sessionUser + "/goals/" + chartkey + "/" +
+	string req = "user/" + sessionUser + "/goals/" + chartkey + "/" +
 				 to_string(wife) + "/" + to_string(rate);
 	auto done = [](HTTPRequest& req, CURLMsg*) {
 
@@ -721,7 +720,7 @@ DownloadManager::AddGoal(const string& chartkey,
 						 float rate,
 						 DateTime& timeAssigned)
 {
-	string req = "user/" + DLMAN->sessionUser + "/goals";
+	string req = "user/" + sessionUser + "/goals";
 	auto done = [](HTTPRequest& req, CURLMsg*) {
 
 	};
@@ -746,7 +745,7 @@ DownloadManager::UpdateGoal(const string& chartkey,
 	if (achieved)
 		doot = timeAchieved.GetString();
 
-	string req = "user/" + DLMAN->sessionUser + "/goals/update";
+	string req = "user/" + sessionUser + "/goals/update";
 	auto done = [](HTTPRequest& req, CURLMsg*) {
 
 	};
@@ -764,17 +763,18 @@ DownloadManager::UpdateGoal(const string& chartkey,
 void
 DownloadManager::RefreshFavourites()
 {
-	string req = "user/" + DLMAN->sessionUser + "/favorites";
-	auto done = [](HTTPRequest& req, CURLMsg*) {
+	string req = "user/" + sessionUser + "/favorites";
+	// Note: Potential race here
+	auto done = [this](HTTPRequest& req, CURLMsg*) {
 		Document d;
 		if (d.Parse(req.result.c_str()).HasParseError() ||
 			!d.HasMember("data") || !d["data"].IsArray())
-			DLMAN->favorites.clear();
+			favorites.clear();
 		else {
 			auto& favs = d["data"];
 			for (auto& fav : favs.GetArray()) {
 				if (fav.HasMember("attributes") && fav["attributes"].IsString())
-					DLMAN->favorites.push_back(fav["attributes"].GetString());
+					favorites.push_back(fav["attributes"].GetString());
 			}
 		}
 		MESSAGEMAN->Broadcast("FavouritesUpdate");
@@ -954,8 +954,10 @@ DownloadManager::UploadScore(HighScore* hs,
 			return;
 		}
 		if (d.HasMember("errors")) {
+			// Potential race here
 			auto onStatus =
-			  [hs, response_code, load_from_disk, &callback, &req](int status) {
+			  [hs, response_code, load_from_disk, &callback, &req, this](
+				int status) {
 				  if (status == 22) {
 					  Locator::getLogger()->trace(
 						"Score upload response contains error, retrying "
@@ -964,13 +966,12 @@ DownloadManager::UploadScore(HighScore* hs,
 						response_code,
 						status,
 						req.result.c_str());
-					  DLMAN->StartSession(
-						DLMAN->sessionUser,
-						DLMAN->sessionPass,
-						[hs, callback, load_from_disk](bool logged) {
+					  StartSession(
+						sessionUser,
+						sessionPass,
+						[hs, callback, load_from_disk, this](bool logged) {
 							if (logged) {
-								DLMAN->UploadScore(
-								  hs, callback, load_from_disk);
+								UploadScore(hs, callback, load_from_disk);
 							}
 						});
 					  return true;
@@ -1029,12 +1030,10 @@ DownloadManager::UploadScore(HighScore* hs,
 				auto str = SkillsetToString(ss);
 				if (ss != Skill_Overall && diffs.HasMember(str.c_str()) &&
 					diffs[str.c_str()].IsNumber())
-					(DLMAN->sessionRatings)[ss] +=
-					  diffs[str.c_str()].GetFloat();
+					(sessionRatings)[ss] += diffs[str.c_str()].GetFloat();
 			}
 			if (diffs.HasMember("Rating") && diffs["Rating"].IsNumber())
-				(DLMAN->sessionRatings)[Skill_Overall] +=
-				  diffs["Rating"].GetFloat();
+				(sessionRatings)[Skill_Overall] += diffs["Rating"].GetFloat();
 			if (hs->GetWifeVersion() == 3)
 				hs->AddUploadedServer(wife3_rescore_upload_flag);
 			hs->AddUploadedServer(serverURL.Get());
@@ -1084,6 +1083,7 @@ DownloadManager::UploadScoreWithReplayDataFromDisk(HighScore* hs,
 // into the callback which calls this function again
 // (So it is essentially kind of recursive, with the base case of an empty
 // deque)
+// This should be a member function of DownloadManager...
 void
 uploadSequentially()
 {
@@ -1253,7 +1253,8 @@ DownloadManager::RefreshUserRank()
 {
 	if (!LoggedIn())
 		return;
-	auto done = [](HTTPRequest& req, CURLMsg*) {
+	// Potential race
+	auto done = [this](HTTPRequest& req, CURLMsg*) {
 		Document d;
 		if (d.Parse(req.result.c_str()).HasParseError()) {
 			Locator::getLogger()->trace(
@@ -1274,9 +1275,9 @@ DownloadManager::RefreshUserRank()
 				auto str = SkillsetToString(ss);
 				if (skillsets.HasMember(str.c_str()) &&
 					skillsets[str.c_str()].IsInt())
-					(DLMAN->sessionRanks)[ss] = skillsets[str.c_str()].GetInt();
+					(sessionRanks)[ss] = skillsets[str.c_str()].GetInt();
 				else
-					(DLMAN->sessionRanks)[ss] = 0;
+					(sessionRanks)[ss] = 0;
 			}
 		}
 		MESSAGEMAN->Broadcast("OnlineUpdate");
@@ -1333,9 +1334,10 @@ DownloadManager::SendRequestToURL(
 			url += param.first + "=" + param.second + "&";
 		url = url.substr(0, url.length() - 1);
 	}
-	function<void(HTTPRequest&, CURLMsg*)> done = [afterDone,
-												   url](HTTPRequest& req,
-														CURLMsg* msg) {
+	// Potential race
+	function<void(HTTPRequest&, CURLMsg*)> done = [afterDone, url, this](
+													HTTPRequest& req,
+													CURLMsg* msg) {
 		Document d;
 		if (d.Parse(req.result.c_str()).HasParseError()) {
 			Locator::getLogger()->trace(
@@ -1343,15 +1345,14 @@ DownloadManager::SendRequestToURL(
 			return;
 		}
 		if (d.HasMember("errors")) {
-			auto on22 = [req, msg, afterDone]() {
-				DLMAN->StartSession(DLMAN->sessionUser,
-									DLMAN->sessionPass,
-									[req, msg, afterDone](bool logged) {
-										if (logged) {
-											auto r = req;
-											afterDone(r, msg);
-										}
-									});
+			auto on22 = [req, msg, afterDone, this]() {
+				StartSession(
+				  sessionUser, sessionPass, [req, msg, afterDone](bool logged) {
+					  if (logged) {
+						  auto r = req;
+						  afterDone(r, msg);
+					  }
+				  });
 			};
 			if (d["errors"].IsArray())
 				for (auto& error : d["errors"].GetArray()) {
@@ -1408,7 +1409,8 @@ DownloadManager::SendRequestToURL(
 void
 DownloadManager::RefreshCountryCodes()
 {
-	auto done = [](HTTPRequest& req, CURLMsg*) {
+	// Potential race
+	auto done = [this](HTTPRequest& req, CURLMsg*) {
 		Document d;
 		if (d.Parse(req.result.c_str()).HasParseError()) {
 			Locator::getLogger()->trace(
@@ -1419,13 +1421,13 @@ DownloadManager::RefreshCountryCodes()
 		if (d.HasMember("data") && d["data"].IsArray())
 			for (auto& code_obj : d["data"].GetArray()) {
 				if (code_obj.HasMember("id") && code_obj["id"].IsString())
-					DLMAN->countryCodes.push_back(code_obj["id"].GetString());
+					countryCodes.push_back(code_obj["id"].GetString());
 				else
-					DLMAN->countryCodes.push_back("");
+					countryCodes.push_back("");
 			}
 		// append the list to global/player country code so
 		// we dont have to merge tables in lua -mina
-		DLMAN->countryCodes.push_back(string("Global"));
+		countryCodes.push_back(string("Global"));
 	};
 	SendRequest(
 	  "/misc/countrycodes", vector<pair<string, string>>(), done, true);
@@ -1438,7 +1440,8 @@ DownloadManager::RequestReplayData(const string& scoreid,
 								   const string& chartkey,
 								   LuaReference& callback)
 {
-	auto done = [scoreid, callback, userid, username, chartkey](
+	// Potential race
+	auto done = [scoreid, callback, userid, username, chartkey, this](
 				  HTTPRequest& req, CURLMsg*) {
 		vector<pair<float, float>> replayData;
 		vector<float> timestamps;
@@ -1491,7 +1494,7 @@ DownloadManager::RequestReplayData(const string& scoreid,
 					rows.push_back(note[4].GetInt());
 				}
 			}
-			auto& lbd = DLMAN->chartLeaderboards[chartkey];
+			auto& lbd = chartLeaderboards[chartkey];
 			auto it = find_if(lbd.begin(),
 							  lbd.end(),
 							  [userid, username, scoreid](OnlineScore& a) {
@@ -1513,7 +1516,7 @@ DownloadManager::RequestReplayData(const string& scoreid,
 			}
 		}
 
-		auto& lbd = DLMAN->chartLeaderboards[chartkey];
+		auto& lbd = chartLeaderboards[chartkey];
 		auto it = find_if(
 		  lbd.begin(), lbd.end(), [userid, username, scoreid](OnlineScore& a) {
 			  return a.userid == userid && a.username == username &&
@@ -1564,7 +1567,7 @@ void
 DownloadManager::RequestChartLeaderBoard(const string& chartkey,
 										 LuaReference& ref)
 {
-	auto done = [chartkey, ref](HTTPRequest& req, CURLMsg*) {
+	auto done = [chartkey, ref, this](HTTPRequest& req, CURLMsg*) {
 		Document d;
 		if (d.Parse(req.result.c_str()).HasParseError()) {
 			Locator::getLogger()->trace(
@@ -1572,7 +1575,7 @@ DownloadManager::RequestChartLeaderBoard(const string& chartkey,
 			  req.result);
 			return;
 		}
-		vector<OnlineScore>& vec = DLMAN->chartLeaderboards[chartkey];
+		vector<OnlineScore>& vec = chartLeaderboards[chartkey];
 		vec.clear();
 
 		long response_code;
@@ -1580,9 +1583,9 @@ DownloadManager::RequestChartLeaderBoard(const string& chartkey,
 
 		// keep track of unranked charts
 		if (response_code == 404)
-			DLMAN->unrankedCharts.emplace(chartkey);
+			unrankedCharts.emplace(chartkey);
 		else if (response_code == 200)
-			DLMAN->unrankedCharts.erase(chartkey);
+			unrankedCharts.erase(chartkey);
 
 		if (!d.HasMember("errors") && d.HasMember("data") &&
 			d["data"].IsArray()) {
@@ -1847,7 +1850,7 @@ DownloadManager::RequestChartLeaderBoard(const string& chartkey,
 void
 DownloadManager::RefreshCoreBundles()
 {
-	auto done = [](HTTPRequest& req, CURLMsg*) {
+	auto done = [this](HTTPRequest& req, CURLMsg*) {
 		Document d;
 		if (d.Parse(req.result.c_str()).HasParseError()) {
 			Locator::getLogger()->trace(
@@ -1857,7 +1860,7 @@ DownloadManager::RefreshCoreBundles()
 		}
 
 		if (d.HasMember("data") && d["data"].IsArray()) {
-			auto& dlPacks = DLMAN->downloadablePacks;
+			auto& dlPacks = downloadablePacks;
 			for (auto& bundleData : d["data"].GetArray()) {
 				if (!bundleData.HasMember("id") ||
 					!bundleData["id"].IsString() ||
@@ -1867,8 +1870,8 @@ DownloadManager::RefreshCoreBundles()
 					!bundleData["attributes"]["packs"].IsArray())
 					continue;
 				auto bundleName = bundleData["id"].GetString();
-				(DLMAN->bundles)[bundleName] = {};
-				auto& bundle = (DLMAN->bundles)[bundleName];
+				(bundles)[bundleName] = {};
+				auto& bundle = (bundles)[bundleName];
 				for (auto& pack :
 					 bundleData["attributes"]["packs"].GetArray()) {
 					if (!pack.HasMember("packname") ||
@@ -1905,7 +1908,7 @@ DownloadManager::DownloadCoreBundle(const string& whichoneyo, bool mirror)
 			 return x1->size < x2->size;
 		 });
 	for (auto pack : bundle)
-		DLMAN->DownloadQueue.push_back(std::make_pair(pack, mirror));
+		DownloadQueue.push_back(std::make_pair(pack, mirror));
 }
 
 void
@@ -1967,14 +1970,15 @@ DownloadManager::RefreshRegisterPage()
 void
 DownloadManager::RefreshTop25(Skillset ss)
 {
-	DLMAN->topScores[ss].clear();
+	topScores[ss].clear();
 	if (!LoggedIn())
 		return;
-	string req = "user/" + DLMAN->sessionUser + "/top/";
+	string req = "user/" + sessionUser + "/top/";
 	CURL* curlHandle = initCURLHandle(true);
 	if (ss != Skill_Overall)
 		req += SkillsetToString(ss) + "/25";
-	auto done = [ss](HTTPRequest& req, CURLMsg*) {
+	// Potential race
+	auto done = [ss, this](HTTPRequest& req, CURLMsg*) {
 		Document d;
 		if (d.Parse(req.result.c_str()).HasParseError() ||
 			(d.HasMember("errors") && d["errors"].IsArray() &&
@@ -1985,7 +1989,7 @@ DownloadManager::RefreshTop25(Skillset ss)
 			  "Malformed top25 scores request response: {}", req.result);
 			return;
 		}
-		vector<OnlineTopScore>& vec = DLMAN->topScores[ss];
+		vector<OnlineTopScore>& vec = topScores[ss];
 		auto& scores = d["data"];
 		for (auto& score_obj : scores.GetArray()) {
 			if (!score_obj.HasMember("attributes")) {
@@ -2045,7 +2049,8 @@ DownloadManager::RefreshUserData()
 {
 	if (!LoggedIn())
 		return;
-	auto done = [](HTTPRequest& req, CURLMsg*) {
+	// Potential race
+	auto done = [this](HTTPRequest& req, CURLMsg*) {
 		Document d;
 		if (d.Parse(req.result.c_str()).HasParseError()) {
 			Locator::getLogger()->trace(
@@ -2066,23 +2071,22 @@ DownloadManager::RefreshUserData()
 				auto str = SkillsetToString(ss);
 				if (skillsets.HasMember(str.c_str()) &&
 					skillsets[str.c_str()].IsNumber())
-					(DLMAN->sessionRatings)[ss] =
-					  skillsets[str.c_str()].GetDouble();
+					(sessionRatings)[ss] = skillsets[str.c_str()].GetDouble();
 				else
-					(DLMAN->sessionRatings)[ss] = 0.0f;
+					(sessionRatings)[ss] = 0.0f;
 			}
 			if (attr.HasMember("playerRating") &&
 				attr["playerRating"].IsNumber())
-				DLMAN->sessionRatings[Skill_Overall] =
+				sessionRatings[Skill_Overall] =
 				  attr["playerRating"].GetDouble();
 			if (skillsets.HasMember("countryCode") &&
 				skillsets["countryCode"].IsString())
-				DLMAN->countryCode = attr["countryCode"].GetString();
+				countryCode = attr["countryCode"].GetString();
 			else
-				DLMAN->countryCode = "";
+				countryCode = "";
 		} else
 			FOREACH_ENUM(Skillset, ss)
-		(DLMAN->sessionRatings)[ss] = 0.0f;
+		(sessionRatings)[ss] = 0.0f;
 
 		MESSAGEMAN->Broadcast("OnlineUpdate");
 	};
@@ -2092,11 +2096,11 @@ DownloadManager::RefreshUserData()
 void
 DownloadManager::OnLogin()
 {
-	DLMAN->RefreshUserRank();
-	DLMAN->RefreshUserData();
-	DLMAN->RefreshCountryCodes();
+	RefreshUserRank();
+	RefreshUserData();
+	RefreshCountryCodes();
 	FOREACH_ENUM(Skillset, ss)
-	DLMAN->RefreshTop25(ss);
+	RefreshTop25(ss);
 	if (DLMAN->ShouldUploadScores()) {
 		DLMAN->UploadScores();
 
@@ -2107,9 +2111,9 @@ DownloadManager::OnLogin()
 		// DLMAN->UpdateOnlineScoreReplayData();
 	}
 	if (GAMESTATE->m_pCurSteps != nullptr)
-		DLMAN->RequestChartLeaderBoard(GAMESTATE->m_pCurSteps->GetChartKey());
+		RequestChartLeaderBoard(GAMESTATE->m_pCurSteps->GetChartKey());
 	MESSAGEMAN->Broadcast("Login");
-	DLMAN->loggingIn = false;
+	loggingIn = false;
 }
 
 void
@@ -2122,7 +2126,7 @@ DownloadManager::StartSession(
 	if (loggingIn || user.empty()) {
 		return;
 	}
-	DLMAN->loggingIn = true;
+	loggingIn = true;
 	EndSessionIfExists();
 	CURL* curlHandle = initCURLHandle(false);
 	SetCURLPostToURL(curlHandle, url);
@@ -2137,13 +2141,13 @@ DownloadManager::StartSession(
 	  curlHandle, form, lastPtr, "clientData", CLIENT_DATA_KEY.c_str());
 	curl_easy_setopt(curlHandle, CURLOPT_HTTPPOST, form);
 
-	auto done = [user, pass, callback](HTTPRequest& req, CURLMsg*) {
+	auto done = [user, pass, callback, this](HTTPRequest& req, CURLMsg*) {
 		Document d;
 		if (d.Parse(req.result.c_str()).HasParseError()) {
 			Locator::getLogger()->trace(
 			  "StartSession Error: Malformed request response: {}", req.result);
 			MESSAGEMAN->Broadcast("LoginFailed");
-			DLMAN->loggingIn = false;
+			loggingIn = false;
 			return;
 		}
 
@@ -2151,7 +2155,7 @@ DownloadManager::StartSession(
 		if (d.HasMember("errors") && d["errors"].IsArray()) {
 			DLMAN->authToken = DLMAN->sessionUser = DLMAN->sessionPass = "";
 			MESSAGEMAN->Broadcast("LoginFailed");
-			DLMAN->loggingIn = false;
+			loggingIn = false;
 		}
 
 		if (d.HasMember("data") && d["data"].IsObject() &&
@@ -2159,21 +2163,21 @@ DownloadManager::StartSession(
 			d["data"]["attributes"].IsObject() &&
 			d["data"]["attributes"].HasMember("accessToken") &&
 			d["data"]["attributes"]["accessToken"].IsString()) {
-			DLMAN->authToken =
-			  d["data"]["attributes"]["accessToken"].GetString();
-			DLMAN->sessionUser = user;
-			DLMAN->sessionPass = pass;
+			authToken = d["data"]["attributes"]["accessToken"].GetString();
+			sessionUser = user;
+			sessionPass = pass;
 		} else {
-			DLMAN->authToken = DLMAN->sessionUser = DLMAN->sessionPass = "";
+			authToken = sessionUser = sessionPass = "";
 		}
-		DLMAN->OnLogin();
-		callback(DLMAN->LoggedIn());
+		OnLogin();
+		callback(LoggedIn());
 	};
 	HTTPRequest* req = new HTTPRequest(curlHandle, done, form);
-	req->Failed = [](HTTPRequest& req, CURLMsg*) {
-		DLMAN->authToken = DLMAN->sessionUser = DLMAN->sessionPass = "";
+	// Potential race
+	req->Failed = [this](HTTPRequest& req, CURLMsg*) {
+		authToken = sessionUser = sessionPass = "";
 		MESSAGEMAN->Broadcast("LoginFailed");
-		DLMAN->loggingIn = false;
+		loggingIn = false;
 	};
 	SetCURLResultsString(curlHandle, &(req->result));
 	if (mHTTPHandle == nullptr)
@@ -2201,14 +2205,14 @@ DownloadManager::RefreshPackList(const string& url)
 {
 	if (url.empty())
 		return;
-	auto done = [](HTTPRequest& req, CURLMsg*) {
+	auto done = [this](HTTPRequest& req, CURLMsg*) {
 		Document d;
 		if (d.Parse(req.result.c_str()).HasParseError() ||
 			!(d.IsArray() || (d.HasMember("data") && d["data"].IsArray()))) {
 			return;
 		}
-		auto& packlist = DLMAN->downloadablePacks;
-		DLMAN->downloadablePacks.clear();
+		auto& packlist = downloadablePacks;
+		downloadablePacks.clear();
 		Value* packs;
 		if (d.IsArray())
 			packs = &d;
@@ -2277,7 +2281,7 @@ DownloadManager::RefreshPackList(const string& url)
 
 			packlist.push_back(tmp);
 		}
-		DLMAN->RefreshCoreBundles();
+		RefreshCoreBundles();
 	};
 	SendRequestToURL(url, {}, done, false, false, true, false);
 }
