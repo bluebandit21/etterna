@@ -151,7 +151,8 @@ ScreenGameplay::Init()
 		auto* curSteps = m_vPlayerInfo.m_vpStepsQueue[i];
 		if (curSteps->IsNoteDataEmpty()) {
 			if (curSteps->GetNoteDataFromSimfile()) {
-				Locator::getLogger()->trace("Notes should be loaded for player 1");
+				Locator::getLogger()->trace(
+				  "Notes should be loaded for player 1");
 			} else {
 				Locator::getLogger()->trace("Error loading notes for player 1");
 			}
@@ -400,6 +401,7 @@ ScreenGameplay::~ScreenGameplay()
 		}
 
 		// Tell DownloadManager we aren't in Gameplay
+		// -- UpdateDLSpeed is a bad name; rename for clarity
 		DLMAN->UpdateDLSpeed(false);
 
 		GAMESTATE->m_gameplayMode.Set(GameplayMode_Normal);
@@ -965,7 +967,8 @@ ScreenGameplay::Update(float fDeltaTime)
 					m_vPlayerInfo.m_pLifeMeter->IsFailing() &&
 					!m_vPlayerInfo.GetPlayerStageStats()->m_bFailed) {
 
-					Locator::getLogger()->trace("Player {} failed", static_cast<int>(pn));
+					Locator::getLogger()->trace("Player {} failed",
+												static_cast<int>(pn));
 					m_vPlayerInfo.GetPlayerStageStats()->m_bFailed =
 					  true; // fail
 
@@ -1036,7 +1039,8 @@ ScreenGameplay::Update(float fDeltaTime)
 				//   granting a fake FC (or more)
 				//  (HACK?)
 				if (GAMESTATE->m_Position.m_fMusicSeconds >=
-					  fSecondsToStartTransitioningOut + m_vPlayerInfo.m_pPlayer->GetMaxStepDistanceSeconds() &&
+					  fSecondsToStartTransitioningOut +
+						m_vPlayerInfo.m_pPlayer->GetMaxStepDistanceSeconds() &&
 					!m_NextSong.IsTransitioning()) {
 					this->PostScreenMessage(SM_NotesEnded, 0);
 				}
@@ -1336,7 +1340,8 @@ ScreenGameplay::Input(const InputEventPlus& input) -> bool
 				 (input.DeviceI.device != DEVICE_KEYBOARD &&
 				  INPUTFILTER->GetSecsHeld(input.DeviceI) >= 1.0F))) {
 				if (PREFSMAN->m_verbose_log > 1) {
-					Locator::getLogger()->trace("Player {} went back", input.pn + 1);
+					Locator::getLogger()->trace("Player {} went back",
+												input.pn + 1);
 				}
 				BeginBackingOutFromGameplay();
 			} else if (PREFSMAN->m_bDelayedBack &&
@@ -1502,8 +1507,9 @@ ScreenGameplay::StageFinished(bool bBackedOut)
 void
 ScreenGameplay::HandleScreenMessage(const ScreenMessage& SM)
 {
-	Locator::getLogger()->trace("HandleScreenMessage({})",
-			   ScreenMessageHelpers::ScreenMessageToString(SM).c_str());
+	Locator::getLogger()->trace(
+	  "HandleScreenMessage({})",
+	  ScreenMessageHelpers::ScreenMessageToString(SM).c_str());
 	if (SM == SM_DoneFadingIn) {
 		// If the ready animation is zero length, then playing the sound will
 		// make it overlap with the go sound.
@@ -1576,10 +1582,11 @@ ScreenGameplay::HandleScreenMessage(const ScreenMessage& SM)
 		const auto bAllReallyFailed = STATSMAN->m_CurStageStats.Failed();
 		const auto bIsLastSong = m_apSongsQueue.size() == 1;
 
-		Locator::getLogger()->trace("bAllReallyFailed = {} bIsLastSong = {}, m_gave_up = {}",
-				   bAllReallyFailed,
-				   bIsLastSong,
-				   m_gave_up);
+		Locator::getLogger()->trace(
+		  "bAllReallyFailed = {} bIsLastSong = {}, m_gave_up = {}",
+		  bAllReallyFailed,
+		  bIsLastSong,
+		  m_gave_up);
 
 		if (GAMESTATE->IsPlaylistCourse()) {
 			m_apSongsQueue.erase(m_apSongsQueue.begin(),
@@ -1704,7 +1711,8 @@ ScreenGameplay::HandleScreenMessage(const ScreenMessage& SM)
 		SongFinished();
 
 		// Don't save here for Playlists
-		// SM_NotesEnded handles all saving for that case (always saves at end of song)
+		// SM_NotesEnded handles all saving for that case (always saves at end
+		// of song)
 		if (!GAMESTATE->IsPlaylistCourse())
 			this->StageFinished(false);
 
