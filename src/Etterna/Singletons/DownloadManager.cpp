@@ -75,54 +75,37 @@ DownloadManager::InstallSmzip(const string& sZipFile)
 {
 	if (!FILEMAN->Mount("zip", sZipFile, TEMP_ZIP_MOUNT_POINT))
 		FAIL_M(static_cast<string>("Failed to mount " + sZipFile).c_str());
-	vector<std::string> v_packs;
-	GetDirListing(TEMP_ZIP_MOUNT_POINT + "*", v_packs, true, true);
-
-	string doot = TEMP_ZIP_MOUNT_POINT;
-	if (v_packs.size() > 1) {
-		doot += sZipFile.substr(sZipFile.find_last_of('/') +
-								1); // attempt to whitelist pack name, this
-									// should be pretty simple/safe solution for
-									// a lot of pad packs -mina
-		doot = doot.substr(0, doot.length() - 4) + "/";
-	}
+	const string sPackName = GetFileNameWithoutExtension(sZipFile);
 
 	vector<string> vsFiles;
-	{
-		vector<std::string> vsRawFiles;
-		GetDirListingRecursive(doot, "*", vsRawFiles);
-
-		if (vsRawFiles.empty()) {
-			FILEMAN->Unmount("zip", sZipFile, TEMP_ZIP_MOUNT_POINT);
-			return false;
-		}
-
-		vector<string> vsPrettyFiles;
-		for (auto& s : vsRawFiles) {
-			if (EqualsNoCase(GetExtension(s), "ctl"))
-				continue;
-
-			vsFiles.push_back(s);
-
-			string s2 = tail(s, s.length() - TEMP_ZIP_MOUNT_POINT.length());
-			vsPrettyFiles.push_back(s2);
-		}
-		sort(vsPrettyFiles.begin(), vsPrettyFiles.end());
+	GetDirListingRecursive(
+	  TEMP_ZIP_MOUNT_POINT + sPackName + "/", "*", vsFiles);
+	if (vsFiles.empty()) {
+		Locator::getLogger()->warn(
+		  "Tried to install pack \"{}\", but zip contained no files!\n",
+		  sZipFile);
+		FILEMAN->Unmount("zip", sZipFile, TEMP_ZIP_MOUNT_POINT);
+		return false;
 	}
-	string sResult = "Success installing " + sZipFile;
-	string extractTo =
-	  downloadPacksToAdditionalSongs ? "AdditionalSongs/" : "Songs/";
-	for (auto& sSrcFile : vsFiles) {
-		string sDestFile = sSrcFile;
-		sDestFile = tail(std::string(sDestFile.c_str()),
-						 sDestFile.length() - TEMP_ZIP_MOUNT_POINT.length());
+	// Filter out all .ctl files
+	vsFiles.erase(remove_if(vsFiles.begin(),
+							vsFiles.end(),
+							[](const string& s) {
+								return EqualsNoCase(GetExtension(s), "ctl");
+							}),
+				  vsFiles.end());
 
-		std::string sDir, sThrowAway;
-		splitpath(sDestFile, sDir, sThrowAway, sThrowAway);
+	string sResult = "Success installing " + sZipFile;
+	const string extractTo =
+	  downloadPacksToAdditionalSongs ? "AdditionalSongs/" : "Songs/";
+	for (const auto& sSrcFile : vsFiles) {
+		const string sDestFile =
+		  tail(sSrcFile, sSrcFile.length() - TEMP_ZIP_MOUNT_POINT.length());
 
 		if (!FileCopy(sSrcFile, extractTo + sDestFile)) {
 			sResult = "Error extracting " + sDestFile;
-			break;
+			break; // TODO: Possibly change this to avoid creating
+				   // half-installed packs
 		}
 	}
 
