@@ -8,6 +8,8 @@
 #include "NotesLoaderSSC.h"
 #include "RageUtil/Utils/RageUtil.h"
 #include "NotesLoaderOSU.h"
+#include <exception>
+#include "Core/Services/Locator.hpp"
 
 void
 NotesLoader::GetMainAndSubTitlesFromFullTitle(const std::string& sFullTitle,
@@ -34,41 +36,55 @@ NotesLoader::LoadFromDir(const std::string& sPath,
 						 Song& out,
 						 std::set<std::string>& BlacklistedImages)
 {
-	vector<std::string> list;
+	// Attempt to load from song directory.
+	// If any exception is thrown, skip the song and log a message.
+	try {
+		vector<std::string> list;
 
-	BlacklistedImages.clear();
-	SSCLoader loaderSSC;
-	loaderSSC.GetApplicableFiles(sPath, list);
-	if (!list.empty()) {
-		if (!loaderSSC.LoadFromDir(sPath, out)) {
-			return false;
+		BlacklistedImages.clear();
+		SSCLoader loaderSSC;
+		loaderSSC.GetApplicableFiles(sPath, list);
+		if (!list.empty()) {
+			if (!loaderSSC.LoadFromDir(sPath, out)) {
+				return false;
+			}
+			return true;
 		}
-		return true;
+		SMALoader loaderSMA;
+		loaderSMA.GetApplicableFiles(sPath, list);
+		if (!list.empty())
+			return loaderSMA.LoadFromDir(sPath, out);
+		SMLoader loaderSM;
+		loaderSM.GetApplicableFiles(sPath, list);
+		if (!list.empty())
+			return loaderSM.LoadFromDir(sPath, out);
+		DWILoader::GetApplicableFiles(sPath, list);
+		if (!list.empty())
+			return DWILoader::LoadFromDir(sPath, out, BlacklistedImages);
+		BMSLoader::GetApplicableFiles(sPath, list);
+		if (!list.empty())
+			return BMSLoader::LoadFromDir(sPath, out);
+		/*
+		PMSLoader::GetApplicableFiles( sPath, list );
+		if( !list.empty() )
+			return PMSLoader::LoadFromDir( sPath, out );
+		*/
+		KSFLoader::GetApplicableFiles(sPath, list);
+		if (!list.empty())
+			return KSFLoader::LoadFromDir(sPath, out);
+		OsuLoader::GetApplicableFiles(sPath, list);
+		if (!list.empty())
+			return OsuLoader::LoadFromDir(sPath, out);
+	} catch (std::exception e) {
+		Locator::getLogger()->warn("Encountered exception {} when trying to "
+								   "load from song directory {}. Skipping...",
+								   e.what(),
+								   sPath);
+	} catch (...) {
+		Locator::getLogger()->warn(
+		  "Encounered unknown exception when trying to load from song "
+		  "directory {}. Skipping...",
+		  sPath);
 	}
-	SMALoader loaderSMA;
-	loaderSMA.GetApplicableFiles(sPath, list);
-	if (!list.empty())
-		return loaderSMA.LoadFromDir(sPath, out);
-	SMLoader loaderSM;
-	loaderSM.GetApplicableFiles(sPath, list);
-	if (!list.empty())
-		return loaderSM.LoadFromDir(sPath, out);
-	DWILoader::GetApplicableFiles(sPath, list);
-	if (!list.empty())
-		return DWILoader::LoadFromDir(sPath, out, BlacklistedImages);
-	BMSLoader::GetApplicableFiles(sPath, list);
-	if (!list.empty())
-		return BMSLoader::LoadFromDir(sPath, out);
-	/*
-	PMSLoader::GetApplicableFiles( sPath, list );
-	if( !list.empty() )
-		return PMSLoader::LoadFromDir( sPath, out );
-	*/
-	KSFLoader::GetApplicableFiles(sPath, list);
-	if (!list.empty())
-		return KSFLoader::LoadFromDir(sPath, out);
-	OsuLoader::GetApplicableFiles(sPath, list);
-	if (!list.empty())
-		return OsuLoader::LoadFromDir(sPath, out);
 	return false;
 }
