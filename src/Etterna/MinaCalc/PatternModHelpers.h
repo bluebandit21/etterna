@@ -3,7 +3,7 @@
 #include <array>
 #include <vector>
 #include <algorithm>
-#include <xmmintrin.h>
+#include <sse2neon.h>
 #include <numeric>
 
 /* generic pattern mod functions and defs to help either agnostic or dependent
@@ -99,5 +99,5 @@ weighted_average(const float& a, const float& b, const float& x, const float& y)
 inline auto
 lerp(float t, float a, float b) -> float
 {
-	return (1.F - t)*a + t*b;
+	return (1.F - t) * a + t * b;
 }
