@@ -3,7 +3,7 @@
 #include <array>
 #include <vector>
 #include <algorithm>
-#include "sse2neon.h"
+#include "./sse2neon.h"
 #include <numeric>
 
 /* generic pattern mod functions and defs to help either agnostic or dependent
