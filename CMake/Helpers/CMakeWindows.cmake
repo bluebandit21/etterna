@@ -34,10 +34,10 @@ else()
 endif()
 
 list(APPEND WIN_DLLS
-	"${PROJECT_SOURCE_DIR}/extern/ffmpeg/windows/${ARCH}/avcodec-55.dll"
-	"${PROJECT_SOURCE_DIR}/extern/ffmpeg/windows/${ARCH}/avformat-55.dll"
-	"${PROJECT_SOURCE_DIR}/extern/ffmpeg/windows/${ARCH}/avutil-52.dll"
-	"${PROJECT_SOURCE_DIR}/extern/ffmpeg/windows/${ARCH}/swscale-2.dll")
+	"${PROJECT_SOURCE_DIR}/extern/ffmpeg/windows/${ARCH}/libavcodec.dll.a"
+	"${PROJECT_SOURCE_DIR}/extern/ffmpeg/windows/${ARCH}/libavformat.dll.a"
+	"${PROJECT_SOURCE_DIR}/extern/ffmpeg/windows/${ARCH}/libavutil.dll.a"
+	"${PROJECT_SOURCE_DIR}/extern/ffmpeg/windows/${ARCH}/libswscale.dll.a")
 
 foreach(dll ${WIN_DLLS})
 	# We remove the dlls if they exist already in /Program/ in case we run a different ARCH target before
