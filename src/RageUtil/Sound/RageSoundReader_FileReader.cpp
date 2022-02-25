@@ -44,7 +44,8 @@ RageSoundReader_FileReader::TryOpenFile(RageFileBasic* pFile,
 	std::string err = Sample->GetError();
 	delete Sample;
 
-	Locator::getLogger()->trace("Format {} failed: {}", format.c_str(), err.c_str());
+	Locator::getLogger()->warn(
+	  "SoundReader Open: Format {} failed: {}", format.c_str(), err.c_str());
 
 	/*
 	 * The file failed to open, or failed to read.  This indicates a problem
@@ -149,8 +150,9 @@ RageSoundReader_FileReader::OpenFile(const std::string& filename,
 		RageSoundReader_FileReader* NewSample =
 		  TryOpenFile(pFile->Copy(), error, *it, bKeepTrying);
 		if (NewSample) {
-            Locator::getLogger()->info("Sound file {} is really {}.",
-						 pFile->GetDisplayPath(), it->c_str());
+			Locator::getLogger()->info("Sound file {} is really {}.",
+									   pFile->GetDisplayPath(),
+									   it->c_str());
 			return NewSample;
 		}
 	}

@@ -264,8 +264,7 @@ RageThread::Create(int (*fn)(void*), void* data)
 
 	strcpy(m_pSlot->m_szName, m_sName.c_str());
 
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->trace("Starting thread: {}", m_sName.c_str());
+	Locator::getLogger()->info("Starting thread: {}", m_sName.c_str());
 	sprintf(m_pSlot->m_szThreadFormattedOutput, "Thread: %s", m_sName.c_str());
 
 	/* Start a thread using our own startup function.  We pass the id to fill
@@ -469,7 +468,7 @@ RageMutex::Lock()
 
 		/* Pass the crash handle of the other thread, so it can backtrace that
 		 * thread. */
-//		CrashHandler::ForceDeadlock(sReason, CrashHandle);
+		//		CrashHandler::ForceDeadlock(sReason, CrashHandle);
 	}
 
 	m_LockedBy = iThisThreadId;
@@ -542,7 +541,8 @@ LockMutex::Unlock()
 	if (file && locked_at != -1) {
 		const float dur = RageTimer::GetTimeSinceStart() - locked_at;
 		if (dur > 0.015f)
-			Locator::getLogger()->trace("Lock at {}:{} took {}", file, line, dur);
+			Locator::getLogger()->trace(
+			  "Lock at {}:{} took {}", file, line, dur);
 	}
 }
 
@@ -633,7 +633,7 @@ RageSemaphore::Wait(bool bFailOnTimeout)
 			   ThisSlot ? ThisSlot->GetThreadName()
 						: "(???"
 						  ")"); // stupid trigraph warnings
-//	CrashHandler::ForceDeadlock(sReason, GetInvalidThreadId());
+	//	CrashHandler::ForceDeadlock(sReason, GetInvalidThreadId());
 }
 
 bool

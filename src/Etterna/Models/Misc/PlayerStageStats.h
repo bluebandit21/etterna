@@ -45,13 +45,16 @@ class PlayerStageStats
 	[[nodiscard]] auto GetCurWifeScore() const -> float;
 	[[nodiscard]] auto GetMaxWifeScore() const -> float;
 	[[nodiscard]] auto GetTimingScale() const -> float;
-	[[nodiscard]] auto GetInputDataVector() const -> std::vector<InputDataEvent>;
+	[[nodiscard]] auto GetInputDataVector() const
+	  -> std::vector<InputDataEvent>;
 	[[nodiscard]] auto GetOffsetVector() const -> std::vector<float>;
 	[[nodiscard]] auto GetNoteRowVector() const -> std::vector<int>;
 	[[nodiscard]] auto GetTrackVector() const -> std::vector<int>;
 	[[nodiscard]] auto GetTapNoteTypeVector() const -> std::vector<TapNoteType>;
 	[[nodiscard]] auto GetHoldReplayDataVector() const
 	  -> std::vector<HoldReplayResult>;
+	[[nodiscard]] auto GetMineReplayDataVector() const
+	  -> std::vector<MineReplayResult>;
 	[[nodiscard]] auto GetCurMaxPercentDancePoints() const -> float;
 
 	[[nodiscard]] auto GetLessonScoreActual() const -> int;
@@ -86,6 +89,7 @@ class PlayerStageStats
 	float CurWifeScore{};
 	float MaxWifeScore{};
 	float m_fTimingScale{};
+	std::vector<MineReplayResult> m_vMineReplayData;
 	std::vector<HoldReplayResult> m_vHoldReplayData;
 	std::vector<float> m_vOffsetVector;
 	std::vector<int> m_vNoteRowVector;
@@ -137,6 +141,7 @@ class PlayerStageStats
 	bool gaveuplikeadumbass{}; // flag 'giving up' status so i can flag it as
 							   // failing so i dont have to remove the feature
 							   // entirely -mina
+	bool usedDoubleSetup{};
 
 	std::map<float, float> m_fLifeRecord;
 	void SetLifeRecordAt(float fLife, float fStepsSecond);

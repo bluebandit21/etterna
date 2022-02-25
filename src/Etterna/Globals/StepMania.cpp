@@ -382,9 +382,10 @@ AdjustForChangedSystemCapabilities()
 	if (g_iLastSeenMemory == Memory)
 		return;
 
-	Locator::getLogger()->trace("Memory changed from {} to {}; settings changed",
-			   g_iLastSeenMemory.Get(),
-			   Memory);
+	Locator::getLogger()->trace(
+	  "Memory changed from {} to {}; settings changed",
+	  g_iLastSeenMemory.Get(),
+	  Memory);
 	g_iLastSeenMemory.Set(Memory);
 
 	// is this assumption outdated? -aj
@@ -670,9 +671,8 @@ CheckVideoDefaultSettings()
 	// Video card changed since last run
 	std::string sVideoDriver = GetVideoDriverName();
 
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->trace("Last seen video driver: {}",
-				   PREFSMAN->m_sLastSeenVideoDriver.Get().c_str());
+	Locator::getLogger()->info("Last seen video driver: {}",
+							   PREFSMAN->m_sLastSeenVideoDriver.Get().c_str());
 
 	// allow players to opt out of the forced reset when a new video card is
 	// detected - mina
@@ -687,8 +687,9 @@ CheckVideoDefaultSettings()
 		std::string sDriverRegex = defaults.sDriverRegex;
 		Regex regex(sDriverRegex);
 		if (regex.Compare(sVideoDriver)) {
-			if (PREFSMAN->m_verbose_log > 1)
-				Locator::getLogger()->trace("Card matches '{}'.", sDriverRegex.size() ? sDriverRegex.c_str() : "(unknown card)");
+			Locator::getLogger()->trace(
+			  "Card matches '{}'.",
+			  sDriverRegex.size() ? sDriverRegex.c_str() : "(unknown card)");
 			break;
 		}
 	}
@@ -699,10 +700,12 @@ CheckVideoDefaultSettings()
 	bool bSetDefaultVideoParams = false;
 	if (PREFSMAN->m_sVideoRenderers.Get().empty()) {
 		bSetDefaultVideoParams = true;
-		Locator::getLogger()->trace("Applying defaults for {}.", sVideoDriver.c_str());
+		Locator::getLogger()->trace("Applying defaults for {}.",
+									sVideoDriver.c_str());
 	} else if (PREFSMAN->m_sLastSeenVideoDriver.Get() != sVideoDriver) {
 		bSetDefaultVideoParams = true;
-		Locator::getLogger()->trace("Video card has changed from {} to {}.  Applying new defaults.",
+		Locator::getLogger()->trace(
+		  "Video card has changed from {} to {}.  Applying new defaults.",
 		  PREFSMAN->m_sLastSeenVideoDriver.Get().c_str(),
 		  sVideoDriver.c_str());
 	}
@@ -725,12 +728,14 @@ CheckVideoDefaultSettings()
 		PREFSMAN->m_sLastSeenVideoDriver.Set(GetVideoDriverName());
 	} else if (CompareNoCase(PREFSMAN->m_sVideoRenderers.Get(),
 							 defaults.sVideoRenderers)) {
-		Locator::getLogger()->warn("Video renderer list has been changed from '{}' to '{}'",
-				  defaults.sVideoRenderers.c_str(), PREFSMAN->m_sVideoRenderers.Get().c_str());
+		Locator::getLogger()->warn(
+		  "Video renderer list has been changed from '{}' to '{}'",
+		  defaults.sVideoRenderers.c_str(),
+		  PREFSMAN->m_sVideoRenderers.Get().c_str());
 	}
 
-	if (PREFSMAN->m_verbose_log > 0)
-		Locator::getLogger()->info("Video renderers: '{}'", PREFSMAN->m_sVideoRenderers.Get().c_str());
+	Locator::getLogger()->info("Video renderers: '{}'",
+							   PREFSMAN->m_sVideoRenderers.Get().c_str());
 	return bSetDefaultVideoParams;
 }
 
@@ -859,8 +864,10 @@ SwitchToLastPlayedGame()
 
 	if (!GAMEMAN->IsGameEnabled(pGame) && pGame != GAMEMAN->GetDefaultGame()) {
 		pGame = GAMEMAN->GetDefaultGame();
-		Locator::getLogger()->warn(R"(Default NoteSkin for "{}" missing, reverting to "{}")",
-				  pGame->m_szName, GAMEMAN->GetDefaultGame()->m_szName);
+		Locator::getLogger()->warn(
+		  R"(Default NoteSkin for "{}" missing, reverting to "{}")",
+		  pGame->m_szName,
+		  GAMEMAN->GetDefaultGame()->m_szName);
 	}
 
 	ASSERT(GAMEMAN->IsGameEnabled(pGame));
@@ -891,7 +898,8 @@ StepMania::InitializeCurrentGame(const Game* g)
 		argCurGame != sGametype) {
 		Game const* new_game = GAMEMAN->StringToGame(argCurGame);
 		if (new_game == nullptr) {
-			Locator::getLogger()->warn("{} is not a known game type, ignoring.", argCurGame.c_str());
+			Locator::getLogger()->warn("{} is not a known game type, ignoring.",
+									   argCurGame.c_str());
 		} else {
 			PREFSMAN->SetCurrentGame(sGametype);
 			GAMESTATE->SetCurGame(new_game);
@@ -943,7 +951,8 @@ WriteLogHeader()
 			// params.
 			args += ssprintf("[[%s]]", g_argv[i]);
 		}
-		Locator::getLogger()->info("Command line args (count={}): {}", (g_argc - 1), args.c_str());
+		Locator::getLogger()->info(
+		  "Command line args (count={}): {}", (g_argc - 1), args.c_str());
 	}
 }
 
@@ -958,25 +967,28 @@ sm_main(int argc, char* argv[])
 	seed_lua_prng();
 
 	// Initialize Logging
-    Locator::provide(std::make_unique<PlogLogger>());
+	Locator::provide(std::make_unique<PlogLogger>());
 
-    // Init Crash Handling
+	// Init Crash Handling
 	bool success = Core::Crash::initCrashpad();
-	if(!success)
-	    Locator::getLogger()->warn("Crash Handler could not be initialized. Crash reports will not be created.");
+	if (!success)
+		Locator::getLogger()->warn("Crash Handler could not be initialized. "
+								   "Crash reports will not be created.");
 
-    // Log App and System Information
-    Locator::getLogger()->info("{} v{} - Build {}",
-                               Core::AppInfo::APP_TITLE,
-                               Core::AppInfo::APP_VERSION,
-                               Core::AppInfo::GIT_HASH);
-    Locator::getLogger()->info("System: {}", Core::Platform::getSystem());
-    Locator::getLogger()->info("CPU: {}", Core::Platform::getSystemCPU());
-	Locator::getLogger()->info("System Architecture: {}", Core::Platform::getArchitecture());
-	Locator::getLogger()->info("Total Memory: {}GB", Core::Platform::getSystemMemory() / pow(1024, 3));
+	// Log App and System Information
+	Locator::getLogger()->info("{} v{} - Build {}",
+							   Core::AppInfo::APP_TITLE,
+							   Core::AppInfo::APP_VERSION,
+							   Core::AppInfo::GIT_HASH);
+	Locator::getLogger()->info("System: {}", Core::Platform::getSystem());
+	Locator::getLogger()->info("CPU: {}", Core::Platform::getSystemCPU());
+	Locator::getLogger()->info("System Architecture: {}",
+							   Core::Platform::getArchitecture());
+	Locator::getLogger()->info(
+	  "Total Memory: {}GB", Core::Platform::getSystemMemory() / pow(1024, 3));
 
-    // Run Platform Initialization
-    Core::Platform::init();
+	// Run Platform Initialization
+	Core::Platform::init();
 
 	RageThreadRegister thread("Main thread");
 	RageException::SetCleanupHandler(HandleException);
@@ -1005,14 +1017,16 @@ sm_main(int argc, char* argv[])
 	// load preferences and mount any alternative trees.
 	PREFSMAN = new PrefsManager;
 
-	/* Allow ArchHooks to check for multiple instances.  We need to do this after
-	 * PREFS is initialized, so ArchHooks can use a preference to turn this off.
-	 * We want to do this before ApplyLogPreferences, so if we exit because of
-	 * another instance, we don't try to clobber its log.  We also want to do
-	 * this before opening the loading window, so if we give focus away, we
-	 * don't flash the window. */
-	if (!g_bAllowMultipleInstances.Get() && Core::Platform::isOtherInstanceRunning(argc, argv)) {
-	    Locator::getLogger()->warn("Multiple instances are disabled. Other instance detected. Shutting down...");
+	/* Allow ArchHooks to check for multiple instances.  We need to do this
+	 * after PREFS is initialized, so ArchHooks can use a preference to turn
+	 * this off. We want to do this before ApplyLogPreferences, so if we exit
+	 * because of another instance, we don't try to clobber its log.  We also
+	 * want to do this before opening the loading window, so if we give focus
+	 * away, we don't flash the window. */
+	if (!g_bAllowMultipleInstances.Get() &&
+		Core::Platform::isOtherInstanceRunning(argc, argv)) {
+		Locator::getLogger()->warn("Multiple instances are disabled. Other "
+								   "instance detected. Shutting down...");
 		ShutdownGame();
 		return 0;
 	}
@@ -1037,10 +1051,14 @@ sm_main(int argc, char* argv[])
 	 * (e.g. Data/Static.ini). Re-read preferences. */
 	PREFSMAN->ReadPrefsFromDisk();
 
-    // Setup options that require preference variables
-    // Used to be contents of ApplyLogPreferences
-    Core::Platform::setConsoleEnabled(PREFSMAN->m_bShowLogOutput);
-    Locator::getLogger()->setLogLevel(static_cast<Core::ILogger::Severity>(PREFSMAN->m_verbose_log.Get()));
+	// Setup options that require preference variables
+	// Used to be contents of ApplyLogPreferences
+	Core::Crash::setShouldUpload(PREFSMAN->m_bEnableCrashUpload);
+	Core::Platform::setConsoleEnabled(PREFSMAN->m_bShowLogOutput);
+	Locator::getLogger()->info("Logging level {} (0 - TRACE | 5 - FATAL)",
+							   PREFSMAN->m_logging_level.Get());
+	Locator::getLogger()->setLogLevel(
+	  static_cast<Core::ILogger::Severity>(PREFSMAN->m_logging_level.Get()));
 
 	// This needs PREFSMAN.
 	Dialog::Init();
@@ -1064,7 +1082,8 @@ sm_main(int argc, char* argv[])
 	}
 
 #if defined(HAVE_TLS)
-	Locator::getLogger()->info("TLS is {}available", RageThread::GetSupportsTLS() ? "" : "not ");
+	Locator::getLogger()->info("TLS is {}available",
+							   RageThread::GetSupportsTLS() ? "" : "not ");
 #endif
 
 	AdjustForChangedSystemCapabilities();
@@ -1096,7 +1115,8 @@ sm_main(int argc, char* argv[])
 	}
 
 	if (PREFSMAN->m_iSoundWriteAhead)
-		Locator::getLogger()->info("Sound writeahead has been overridden to {}", PREFSMAN->m_iSoundWriteAhead.Get());
+		Locator::getLogger()->info("Sound writeahead has been overridden to {}",
+								   PREFSMAN->m_iSoundWriteAhead.Get());
 
 	SONGINDEX = new SongCacheIndex;
 	SOUNDMAN = new RageSoundManager;
@@ -1216,7 +1236,6 @@ StepMania::SaveScreenshot(const std::string& Dir,
 
 	return FileName;
 }
-
 
 /* Returns true if the key has been handled and should be discarded, false if
  * the key should be sent on to screens. */
@@ -1370,7 +1389,8 @@ HandleGlobalInputs(const InputEventPlus& input)
 		bool bSaveCompressed = bHoldingShift;
 		RageTimer timer;
 		StepMania::SaveScreenshot("Screenshots/", bSaveCompressed, "", "");
-		Locator::getLogger()->trace("Screenshot took {} seconds.", timer.GetDeltaTime());
+		Locator::getLogger()->debug("Screenshot took {} seconds.",
+									timer.GetDeltaTime());
 		return true; // handled
 	}
 
@@ -1395,7 +1415,9 @@ HandleGlobalInputs(const InputEventPlus& input)
 	return false;
 }
 
-void StepMania::HandleInputEvents(float fDeltaTime) {
+void
+StepMania::HandleInputEvents(float fDeltaTime)
+{
 	INPUTFILTER->Update(fDeltaTime);
 
 	/* Hack: If the topmost screen hasn't been updated yet, don't process input,

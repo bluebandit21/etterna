@@ -87,7 +87,7 @@ XToString(MessageID);
 
 static RageMutex g_Mutex("MessageManager");
 
-using SubscribersSet = std::set<IMessageSubscriber *>;
+using SubscribersSet = std::set<IMessageSubscriber*>;
 static std::map<std::string, SubscribersSet> g_MessageToSubscribers;
 
 Message::Message(const std::string& s)
@@ -219,7 +219,8 @@ MessageManager::Broadcast(Message& msg) const
 	// BroadcastOnChangePtr members, so they all broadcast when they're
 	// initialized.
 	if (this != nullptr && m_Logging) {
-		Locator::getLogger()->trace("MESSAGEMAN:Broadcast: {}", msg.GetName().c_str());
+		Locator::getLogger()->info("MESSAGEMAN:Broadcast: {}",
+								   msg.GetName().c_str());
 	}
 	msg.SetBroadcast(true);
 

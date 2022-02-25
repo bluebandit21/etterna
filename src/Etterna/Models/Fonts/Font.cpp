@@ -149,7 +149,8 @@ FontPage::Load(const FontPageSettings& cfg)
 }
 
 void
-FontPage::SetTextureCoords(const std::vector<int>& widths, int iAdvanceExtraPixels)
+FontPage::SetTextureCoords(const std::vector<int>& widths,
+						   int iAdvanceExtraPixels)
 {
 	for (int i = 0; i < m_FontPageTextures.m_pTextureMain->GetNumFrames();
 		 ++i) {
@@ -560,19 +561,20 @@ Font::LoadFontPageSettings(FontPageSettings& cfg,
 						  sName.c_str());
 					else
 						c = c2;
-				}
-				else if (!sCodepoint.empty() &&
-						 utf8_get_char_len(sCodepoint[0]) ==
-						   static_cast<int>(sCodepoint.size())) {
+				} else if (!sCodepoint.empty() &&
+						   utf8_get_char_len(sCodepoint[0]) ==
+							 static_cast<int>(sCodepoint.size())) {
 					c = utf8_get_char(sCodepoint);
 					if (c == static_cast<wchar_t>(-1))
-						Locator::getLogger()->warn("Font definition '{}' has an invalid value '{}'.",
+						Locator::getLogger()->warn(
+						  "Font definition '{}' has an invalid value '{}'.",
 						  ini.GetPath().c_str(),
 						  sName.c_str());
 				} else if (!FontCharAliases::GetChar(sCodepoint, c)) {
-					Locator::getLogger()->warn("Font definition '{}' has an invalid value '{}'.",
-							  ini.GetPath().c_str(),
-							  sName.c_str());
+					Locator::getLogger()->warn(
+					  "Font definition '{}' has an invalid value '{}'.",
+					  ini.GetPath().c_str(),
+					  sName.c_str());
 					continue;
 				}
 
@@ -723,7 +725,8 @@ Font::LoadFontPageSettings(FontPageSettings& cfg,
 				cfg.MapRange("numbers", 0, 0, -1);
 				break;
 			default:
-				Locator::getLogger()->trace("Font page \"{}\" has no characters", sTexturePath.c_str());
+				Locator::getLogger()->warn("Font page \"{}\" has no characters",
+										   sTexturePath.c_str());
 		}
 	}
 
@@ -834,7 +837,8 @@ Font::Load(const std::string& sIniPath, const std::string& sChars)
 	LoadStack.push_back(sIniPath);
 
 	// The font is not already loaded. Figure out what we have.
-	Locator::getLogger()->trace("Font::Load(\"{}\",\"{}\").", sIniPath.c_str(), m_sChars.c_str());
+	Locator::getLogger()->trace(
+	  "Font::Load(\"{}\",\"{}\").", sIniPath.c_str(), m_sChars.c_str());
 
 	path = sIniPath;
 	m_sChars = sChars;

@@ -246,7 +246,8 @@ DriverList InputHandler::m_pDriverList;
 static LocalizedString INPUT_HANDLERS_EMPTY("Arch",
 											"Input Handlers cannot be empty.");
 void
-InputHandler::Create(const std::string& drivers_, std::vector<InputHandler*>& Add)
+InputHandler::Create(const std::string& drivers_,
+					 std::vector<InputHandler*>& Add)
 {
 	const std::string drivers = drivers_.empty()
 								  ? std::string(DEFAULT_INPUT_DRIVER_LIST)
@@ -261,8 +262,8 @@ InputHandler::Create(const std::string& drivers_, std::vector<InputHandler*>& Ad
 	{
 		RageDriver* pDriver = InputHandler::m_pDriverList.Create(*s);
 		if (pDriver == NULL) {
-			Locator::getLogger()->trace("Unknown Input Handler name: {}",
-										s->c_str());
+			Locator::getLogger()->warn("Unknown Input Handler name: {}",
+									   s->c_str());
 			continue;
 		}
 

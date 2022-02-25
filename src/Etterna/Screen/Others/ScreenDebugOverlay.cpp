@@ -533,7 +533,7 @@ ScreenDebugOverlay::Input(const InputEventPlus& input)
 			std::string sMessage;
 			(*p)->DoAndLog(sMessage);
 			if (!sMessage.empty())
-				Locator::getLogger()->trace("DEBUG: {}", sMessage.c_str());
+				Locator::getLogger()->info("DEBUG: {}", sMessage.c_str());
 			if ((*p)->ForceOffAfterUse())
 				m_bForcedHidden = true;
 
@@ -1560,10 +1560,10 @@ class DebugLineKeyConfig : public IDebugLine
 	}
 };
 
-class DebugLineChartFolder: public IDebugLine
+class DebugLineChartFolder : public IDebugLine
 {
 	std::string GetDisplayTitle() override { return CHART_FOLDER.GetValue(); }
-	std::string GetDisplayValue() override { return std::string();	}
+	std::string GetDisplayValue() override { return std::string(); }
 	std::string GetPageName() const override { return "Misc"; }
 	bool IsEnabled() override { return GAMESTATE->m_pCurSong != nullptr; }
 

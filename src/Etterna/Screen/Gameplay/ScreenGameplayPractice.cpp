@@ -53,8 +53,8 @@ ScreenGameplayPractice::Init()
 
 ScreenGameplayPractice::~ScreenGameplayPractice()
 {
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->trace("ScreenGameplayReplay::~ScreenGameplayReplay()");
+	Locator::getLogger()->debug(
+	  "ScreenGameplayReplay::~ScreenGameplayReplay()");
 }
 
 auto
@@ -95,9 +95,10 @@ ScreenGameplayPractice::Input(const InputEventPlus& input) -> bool
 			SongManager::ReconcileChartKeysForReloadedSong(cursong, oldKeys);
 
 			if (!success || GAMESTATE->m_pCurSteps->GetNoteData().IsEmpty()) {
-				Locator::getLogger()->trace("The Player attempted something resulting in an "
-						   "unrecoverable error while in Gameplay Practice and "
-						   "has been ejected.");
+				Locator::getLogger()->error(
+				  "The Player attempted something resulting in an "
+				  "unrecoverable error while in Gameplay Practice and "
+				  "has been ejected.");
 				BeginBackingOutFromGameplay();
 				return true;
 			}
@@ -159,17 +160,20 @@ void
 ScreenGameplayPractice::Update(const float fDeltaTime)
 {
 	if (GAMESTATE->m_pCurSong == nullptr) {
-		ScreenWithMenuElements::Update(fDeltaTime); // NOLINT(bugprone-parent-virtual-call)
+		ScreenWithMenuElements::Update(
+		  fDeltaTime); // NOLINT(bugprone-parent-virtual-call)
 		return;
 	}
 
-	UpdateSongPosition(fDeltaTime);
+	UpdateSongPosition();
 
 	if (m_bZeroDeltaOnNextUpdate) {
-		ScreenWithMenuElements::Update(0); // NOLINT(bugprone-parent-virtual-call)
+		ScreenWithMenuElements::Update(
+		  0); // NOLINT(bugprone-parent-virtual-call)
 		m_bZeroDeltaOnNextUpdate = false;
 	} else {
-		ScreenWithMenuElements::Update(fDeltaTime); // NOLINT(bugprone-parent-virtual-call)
+		ScreenWithMenuElements::Update(
+		  fDeltaTime); // NOLINT(bugprone-parent-virtual-call)
 	}
 
 	if (SCREENMAN->GetTopScreen() != this) {
@@ -231,7 +235,8 @@ ScreenGameplayPractice::Update(const float fDeltaTime)
 			if (bGiveUpTimerFired) {
 				m_vPlayerInfo.GetPlayerStageStats()->gaveuplikeadumbass = true;
 				m_vPlayerInfo.GetPlayerStageStats()->m_bDisqualified = true;
-				Locator::getLogger()->trace("Exited Practice Mode to Evaluation");
+				Locator::getLogger()->info(
+				  "Exited Practice Mode to Evaluation");
 				this->PostScreenMessage(SM_LeaveGameplay, 0);
 				return;
 			}
@@ -382,7 +387,7 @@ ScreenGameplayPractice::SetSongPosition(float newSongPositionSeconds,
 
 	// Set the final position
 	SOUND->SetSoundPosition(m_pSoundMusic, newSongPositionSeconds - noteDelay);
-	UpdateSongPosition(0);
+	UpdateSongPosition();
 
 	// Unpause the music if we want it unpaused
 	if (unpause && isPaused) {
@@ -567,7 +572,7 @@ class LunaScreenGameplayPractice : public Luna<ScreenGameplayPractice>
 		return 1;
 	}
 
-	static auto TogglePause(T* p, lua_State * /*L*/) -> int
+	static auto TogglePause(T* p, lua_State* /*L*/) -> int
 	{
 		p->TogglePause();
 		return 0;
@@ -581,7 +586,7 @@ class LunaScreenGameplayPractice : public Luna<ScreenGameplayPractice>
 		return 0;
 	}
 
-	static auto ResetLoopRegion(T* p, lua_State * /*L*/) -> int
+	static auto ResetLoopRegion(T* p, lua_State* /*L*/) -> int
 	{
 		p->ResetLoopRegion();
 		return 0;

@@ -31,8 +31,8 @@ MeterDisplay::Load(const std::string& sStreamPath,
 void
 MeterDisplay::LoadFromNode(const XNode* pNode)
 {
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->trace("MeterDisplay::LoadFromNode({})", ActorUtil::GetWhere(pNode).c_str());
+	Locator::getLogger()->trace("MeterDisplay::LoadFromNode({})",
+								ActorUtil::GetWhere(pNode).c_str());
 
 	const XNode* pStream = pNode->GetChild("Stream");
 	if (pStream == NULL) {
@@ -91,9 +91,7 @@ SongMeterDisplay::Update(float fDeltaTime)
 		if (GAMESTATE->m_pCurSteps) {
 			fSongStartSeconds = GAMESTATE->m_pCurSteps->firstsecond;
 			fSongEndSeconds = GAMESTATE->m_pCurSteps->lastsecond;
-		}
-		else
-		{
+		} else {
 			fSongStartSeconds = GAMESTATE->m_pCurSong->GetFirstSecond();
 			fSongEndSeconds = GAMESTATE->m_pCurSong->GetLastSecond();
 		}

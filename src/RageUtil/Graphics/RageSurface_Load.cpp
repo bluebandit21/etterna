@@ -66,7 +66,8 @@ TryOpenFile(const std::string& sPath,
 		return ret;
 	}
 
-	//Locator::getLogger()->trace("Format {} failed: {}", format.c_str(), error.c_str());
+	Locator::getLogger()->error(
+	  "RageSurface Open: Format {} failed: {}", format.c_str(), error.c_str());
 	return nullptr;
 }
 
@@ -108,7 +109,8 @@ RageSurfaceUtils::LoadFile(const std::string& sPath,
 		const auto ret =
 		  TryOpenFile(sPath, bHeaderOnly, error, *it, bKeepTrying);
 		if (ret) {
-            Locator::getLogger()->info("Graphic file", sPath, "is really %s", it->c_str());
+			Locator::getLogger()->info(
+			  "Graphic file", sPath, "is really %s", it->c_str());
 			return ret;
 		}
 	}

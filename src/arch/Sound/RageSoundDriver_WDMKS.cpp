@@ -926,12 +926,13 @@ WinWdmFilter::InstantiateRenderPin(
 						wfx.SubFormat = GUID_NULL;
 					}
 
-					Locator::getLogger()->trace("KS: trying format: {} channels: {} samplerate: "
-							   "{} format: {:04x}",
-							   PreferredOutputSampleFormat,
-							   iPreferredOutputChannels,
-							   iPreferredSampleRate,
-							   wfx.Format.wFormatTag);
+					Locator::getLogger()->trace(
+					  "KS: trying format: {} channels: {} samplerate: "
+					  "{} format: {:04x}",
+					  PreferredOutputSampleFormat,
+					  iPreferredOutputChannels,
+					  iPreferredSampleRate,
+					  wfx.Format.wFormatTag);
 					WinWdmPin* pPlaybackPin =
 					  InstantiateRenderPin((WAVEFORMATEX*)&wfx, sError);
 
@@ -1027,7 +1028,8 @@ BuildFilterList(std::vector<WinWdmFilter*>& aFilters, std::string& sError)
 		WinWdmFilter* pNewFilter =
 		  WinWdmFilter::Create(sDevicePath, szFriendlyName, sError);
 		if (pNewFilter == nullptr) {
-			Locator::getLogger()->trace("Filter \"{}\" not created: {}", szFriendlyName, sError.c_str());
+			Locator::getLogger()->trace(
+			  "Filter \"{}\" not created: {}", szFriendlyName, sError.c_str());
 			continue;
 		}
 
@@ -1172,11 +1174,12 @@ WinWdmStream::Open(WinWdmFilter* pFilter,
 		  std::max(m_iFramesPerChunk, iFrameSize); // iFrameSize may be 0
 	}
 
-    Locator::getLogger()->info("KS: chunk size: {}; allocator framing: {} ({}ms)",
-			  m_iFramesPerChunk,
-			  iFrameSize,
-			  (iFrameSize * 1000) / m_iSampleRate);
-    Locator::getLogger()->info("KS: {}hz", m_iSampleRate);
+	Locator::getLogger()->info(
+	  "KS: chunk size: {}; allocator framing: {} ({}ms)",
+	  m_iFramesPerChunk,
+	  iFrameSize,
+	  (iFrameSize * 1000) / m_iSampleRate);
+	Locator::getLogger()->info("KS: {}hz", m_iSampleRate);
 
 	/* Set up chunks. */
 	for (auto& m_Packet : m_Packets) {
@@ -1405,7 +1408,9 @@ RageSoundDriver_WDMKS::MixerThread()
 	if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST))
 		//	if( !SetThreadPriority(GetCurrentThread(),
 		// THREAD_PRIORITY_TIME_CRITICAL) )
-		Locator::getLogger()->warn( werr_ssprintf(GetLastError(), "Failed to set sound thread priority"));
+		Locator::getLogger()->warn(
+		  "{}",
+		  werr_ssprintf(GetLastError(), "Failed to set sound thread priority"));
 
 	/* Enable priority boosting. */
 	SetThreadPriorityBoost(GetCurrentThread(), FALSE);
@@ -1436,7 +1441,8 @@ RageSoundDriver_WDMKS::MixerThread()
 		  WaitForMultipleObjects(2, aEventHandles, FALSE, 1000);
 
 		if (iWait == WAIT_FAILED) {
-			Locator::getLogger()->warn(werr_ssprintf(GetLastError(), "WaitForMultipleObjects"));
+			Locator::getLogger()->warn(
+			  "{}", werr_ssprintf(GetLastError(), "WaitForMultipleObjects"));
 			break;
 		}
 		if (iWait == WAIT_TIMEOUT)
@@ -1477,7 +1483,9 @@ void
 RageSoundDriver_WDMKS::SetupDecodingThread()
 {
 	if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL))
-		Locator::getLogger()->warn(werr_ssprintf(GetLastError(), "Failed to set sound thread priority"));
+		Locator::getLogger()->warn(
+		  "{}",
+		  werr_ssprintf(GetLastError(), "Failed to set sound thread priority"));
 }
 
 int64_t
@@ -1525,10 +1533,11 @@ RageSoundDriver_WDMKS::Init()
 
 	for (size_t i = 0; i < apFilters.size(); ++i) {
 		const WinWdmFilter* pFilter = apFilters[i];
-		Locator::getLogger()->trace("Device #{}: {}", i, pFilter->m_sFriendlyName.c_str());
+		Locator::getLogger()->info(
+		  "Device #{}: {}", i, pFilter->m_sFriendlyName.c_str());
 		for (size_t j = 0; j < pFilter->m_apPins.size(); ++j) {
 			WinWdmPin* pPin = pFilter->m_apPins[j];
-			Locator::getLogger()->trace("  Pin {}", j);
+			Locator::getLogger()->info("  Pin {}", j);
 			FOREACH_CONST(KSDATARANGE_AUDIO, pPin->m_dataRangesItem, range)
 			{
 				std::string sSubFormat;
@@ -1545,10 +1554,13 @@ RageSoundDriver_WDMKS::Init()
 								 sizeof(GUID)))
 					sSubFormat = "FLOAT";
 
-				Locator::getLogger()->trace("     Range: {} channels, sample {}-{}, {}-{}hz ({})",
+				Locator::getLogger()->info(
+				  "     Range: {} channels, sample {}-{}, {}-{}hz ({})",
 				  range->MaximumChannels,
-				  range->MinimumBitsPerSample, range->MaximumBitsPerSample,
-				  range->MinimumSampleFrequency, range->MaximumSampleFrequency,
+				  range->MinimumBitsPerSample,
+				  range->MaximumBitsPerSample,
+				  range->MinimumSampleFrequency,
+				  range->MaximumSampleFrequency,
 				  sSubFormat.c_str());
 			}
 		}
@@ -1586,11 +1598,9 @@ RageSoundDriver_WDMKS::~RageSoundDriver_WDMKS()
 	if (MixingThread.IsCreated()) {
 		m_bShutdown = true;
 		SetEvent(m_hSignal); /* Signal immediately */
-		if (PREFSMAN->m_verbose_log > 1)
-			Locator::getLogger()->trace("Shutting down mixer thread ...");
+		Locator::getLogger()->info("Shutting down mixer thread ...");
 		MixingThread.Wait();
-		if (PREFSMAN->m_verbose_log > 1)
-			Locator::getLogger()->trace("Mixer thread shut down.");
+		Locator::getLogger()->info("Mixer thread shut down.");
 
 		delete m_pStream;
 	}

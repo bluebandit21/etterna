@@ -165,7 +165,8 @@ ThreadedFileWorker::ThreadedFileWorker(std::string sPath)
 	/* Grab a reference to the child driver.  We'll operate on it directly. */
 	m_pChildDriver = FILEMAN->GetFileDriver(sPath);
 	if (m_pChildDriver == nullptr)
-		Locator::getLogger()->warn("ThreadedFileWorker: Mountpoint \"{}\" not found", sPath.c_str());
+		Locator::getLogger()->warn(
+		  "ThreadedFileWorker: Mountpoint \"{}\" not found", sPath.c_str());
 
 	m_pResultFile = nullptr;
 	m_pRequestFile = nullptr;
@@ -323,7 +324,7 @@ ThreadedFileWorker::Open(const std::string& sPath, int iMode, int& iErr)
 	m_iRequestMode = iMode;
 
 	if (!DoRequest(REQ_OPEN)) {
-		Locator::getLogger()->trace("Open({}) timed out", sPath.c_str());
+		Locator::getLogger()->debug("Open({}) timed out", sPath.c_str());
 		iErr = EFAULT; /* Win32 has no ETIMEDOUT */
 		return nullptr;
 	}
@@ -609,7 +610,8 @@ ThreadedFileWorker::PopulateFileSet(FileSet& fs, const std::string& sPath)
 
 	/* Kick off the worker thread, and wait for it to finish. */
 	if (!DoRequest(REQ_POPULATE_FILE_SET)) {
-		Locator::getLogger()->trace("PopulateFileSet({}) timed out", sPath.c_str());
+		Locator::getLogger()->debug("PopulateFileSet({}) timed out",
+									sPath.c_str());
 		return false;
 	}
 
@@ -680,7 +682,8 @@ ThreadedFileWorker::FlushDirCache(const std::string& sPath)
 		if (!bTimeoutEnabled)
 			SetTimeout(-1);
 
-		Locator::getLogger()->trace("FlushDirCache({}) timed out", sPath.c_str());
+		Locator::getLogger()->debug("FlushDirCache({}) timed out",
+									sPath.c_str());
 		return false;
 	}
 
@@ -904,7 +907,8 @@ RageFileDriverTimeout::Move(const std::string& sOldPath,
 	int iRet = m_pWorker->Move(sOldPath, sNewPath);
 	if (iRet == -1) {
 		Locator::getLogger()->warn("RageFileDriverTimeout::Move({},{}) failed",
-					  sOldPath.c_str(), sNewPath.c_str());
+								   sOldPath.c_str(),
+								   sNewPath.c_str());
 		return false;
 	}
 
@@ -916,7 +920,8 @@ RageFileDriverTimeout::Remove(const std::string& sPath)
 {
 	int iRet = m_pWorker->Remove(sPath);
 	if (iRet == -1) {
-        Locator::getLogger()->warn("RageFileDriverTimeout::Remove({}) failed", sPath.c_str());
+		Locator::getLogger()->warn("RageFileDriverTimeout::Remove({}) failed",
+								   sPath.c_str());
 		return false;
 	}
 

@@ -10,7 +10,7 @@
  * mods do their stuff */
 constexpr float neutral = 1.F;
 
-// Relies on endiannes (significantly inaccurate)
+/// Relies on endiannes (significantly inaccurate)
 inline auto
 fastpow(double a, double b) -> float
 {
@@ -22,7 +22,7 @@ fastpow(double a, double b) -> float
 	return static_cast<float>(a);
 }
 
-// not super accurate, good enough for our purposes
+/// not super accurate, good enough for our purposes
 inline auto
 fastsqrt(float _in) -> float
 {
@@ -99,5 +99,5 @@ weighted_average(const float& a, const float& b, const float& x, const float& y)
 inline auto
 lerp(float t, float a, float b) -> float
 {
-	return (1.F - t)*a + t*b;
+	return (1.F - t) * a + t * b;
 }

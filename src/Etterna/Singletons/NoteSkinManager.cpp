@@ -162,9 +162,9 @@ NoteSkinManager::LoadNoteSkinDataRecursive(const std::string& sNoteSkinName_,
 			}
 		}
 
-		if (PREFSMAN->m_verbose_log > 1)
-			Locator::getLogger()->trace("LoadNoteSkinDataRecursive: {} ({})",
-					   sNoteSkinName.c_str(),sDir.c_str());
+		Locator::getLogger()->debug("LoadNoteSkinDataRecursive: {} ({})",
+									sNoteSkinName.c_str(),
+									sDir.c_str());
 
 		// read global fallback the current NoteSkin (if any)
 		IniFile ini;
@@ -204,8 +204,7 @@ NoteSkinManager::LoadNoteSkinDataRecursive(const std::string& sNoteSkinName_,
 		if (!GetFileContents(sFile, sScript))
 			continue;
 
-		if (PREFSMAN->m_verbose_log > 1)
-			Locator::getLogger()->trace("Load script \"{}\"", sFile.c_str());
+		Locator::getLogger()->trace("Load script \"{}\"", sFile.c_str());
 
 		auto L = LUA->Get();
 		auto Error = "Error running " + sFile + ": ";
@@ -229,7 +228,8 @@ NoteSkinManager::GetNoteSkinNames(std::vector<std::string>& AddTo)
 }
 
 void
-NoteSkinManager::GetNoteSkinNames(const Game* pGame, std::vector<std::string>& AddTo)
+NoteSkinManager::GetNoteSkinNames(const Game* pGame,
+								  std::vector<std::string>& AddTo)
 {
 	GetAllNoteSkinNamesForGame(pGame, AddTo);
 }

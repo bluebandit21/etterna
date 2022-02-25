@@ -237,8 +237,10 @@ Language(int& sel, bool ToSel, const ConfOption* pConfOption)
 				sel = i;
 
 		if (sel == -1) {
-			Locator::getLogger()->warn("Couldn't find language \"{}\" or fallback \"{}\"; using \"{}\"",
-			  THEME->GetCurLanguage().c_str(), SpecialFiles::BASE_LANGUAGE.c_str(),
+			Locator::getLogger()->warn(
+			  "Couldn't find language \"{}\" or fallback \"{}\"; using \"{}\"",
+			  THEME->GetCurLanguage().c_str(),
+			  SpecialFiles::BASE_LANGUAGE.c_str(),
 			  vs[0].c_str());
 			sel = 0;
 		}
@@ -852,6 +854,7 @@ InitializeConfOptions()
 	ADD(ConfOption("SortBySSRNormPercent", MovePref<bool>, "Off", "On"));
 	ADD(ConfOption("UseMidGrades", MovePref<bool>, "Off", "On"));
 	ADD(ConfOption("PackProgressInWheel", MovePref<bool>, "Off", "On"));
+	ADD(ConfOption("EnableMinidumpUpload", MovePref<bool>, "Off", "On"));
 
 	// Machine options
 	ADD(ConfOption("TimingWindowScale",

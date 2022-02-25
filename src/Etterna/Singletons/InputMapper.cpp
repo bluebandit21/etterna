@@ -112,13 +112,13 @@ InputMapper::AddDefaultMappingsForCurrentGameIfUnmapped()
 											   : GameController_1,
 						m->m_gb);
 		// dont remap a button that is already being used
-		if (!IsMapped(DeviceI))
-		{
+		if (!IsMapped(DeviceI)) {
 			if (!GameI.IsValid())
 				ClearFromInputMap(DeviceI);
 			else {
 				// dont remap a default column binding
-				if (!m_mappings.m_GItoDI[GameI.controller][GameI.button][2].IsValid())
+				if (!m_mappings.m_GItoDI[GameI.controller][GameI.button][2]
+					   .IsValid())
 					SetInputMap(DeviceI, GameI, 2);
 			}
 		}
@@ -711,7 +711,8 @@ InputMapper::AutoMapJoysticksForCurrentGame()
 				break; // stop mapping.  We already mapped one device for each
 					   // game controller.
 
-			Locator::getLogger()->info("Applying default joystick mapping #{} for device '{}' ({})",
+			Locator::getLogger()->info(
+			  "Applying default joystick mapping #{} for device '{}' ({})",
 			  iNumJoysticksMapped + 1,
 			  mapping->m_sDriverRegex.c_str(),
 			  mapping->m_sControllerName.c_str());
@@ -1221,8 +1222,9 @@ InputScheme::MenuButtonToGameInputs(GameButton MenuI,
 }
 
 void
-InputScheme::MenuButtonToGameButtons(GameButton MenuI,
-									 std::vector<GameButton>& aGameButtons) const
+InputScheme::MenuButtonToGameButtons(
+  GameButton MenuI,
+  std::vector<GameButton>& aGameButtons) const
 {
 	ASSERT(MenuI != GameButton_Invalid);
 
@@ -1324,9 +1326,9 @@ InputMappings::ReadMappings(const InputScheme* pInputScheme,
 
 	IniFile ini;
 	if (!ini.ReadFile(sFilePath))
-		Locator::getLogger()->trace("Couldn't open mapping file \"{}\": {}.",
-				   SpecialFiles::KEYMAPS_PATH.c_str(),
-				   ini.GetError().c_str());
+		Locator::getLogger()->warn("Couldn't open mapping file \"{}\": {}.",
+								   SpecialFiles::KEYMAPS_PATH.c_str(),
+								   ini.GetError().c_str());
 
 	if (bIsAutoMapping) {
 		if (!ini.GetValue("AutoMapping", "DeviceRegex", m_sDeviceRegex))
@@ -1393,8 +1395,7 @@ InputMappings::WriteMappings(const InputScheme* pInputScheme,
 
 			std::vector<std::string> asValues;
 			asValues.reserve(NUM_GAME_TO_DEVICE_SLOTS);
-			for (int slot = 0; slot < NUM_GAME_TO_DEVICE_SLOTS;
-				 ++slot)
+			for (int slot = 0; slot < NUM_GAME_TO_DEVICE_SLOTS; ++slot)
 				asValues.push_back(m_GItoDI[i][j][slot].ToString());
 
 			while (!asValues.empty() && asValues.back().empty())
@@ -1463,7 +1464,7 @@ InputMappings::ClearFromInputMap(const GameInput& GameI, int iSlotIndex)
 
 class LunaInputMapper : public Luna<InputMapper>
 {
-public:
+  public:
 	static int SetInputMap(T* p, lua_State* L)
 	{
 		// ex: "Key_z"
@@ -1489,10 +1490,14 @@ public:
 	{
 		// includes only the GAMEPLAY buttons
 		// no menu buttons
-		// I sure hope nobody changes the GameManager defs and InputMapper enum defs...
+		// I sure hope nobody changes the GameManager defs and InputMapper enum
+		// defs...
 		std::vector<std::string> keys;
-		for (GameButton gb = GAME_BUTTON_CUSTOM_01; gb < INPUTMAPPER->GetInputScheme()->m_iButtonsPerController; enum_add<GameButton>(gb, +1)) {
-			keys.push_back(GameButtonToString(INPUTMAPPER->GetInputScheme(), gb));
+		for (GameButton gb = GAME_BUTTON_CUSTOM_01;
+			 gb < INPUTMAPPER->GetInputScheme()->m_iButtonsPerController;
+			 enum_add<GameButton>(gb, +1)) {
+			keys.push_back(
+			  GameButtonToString(INPUTMAPPER->GetInputScheme(), gb));
 		}
 		LuaHelpers::CreateTableFromArray<std::string>(keys, L);
 		return 1;
@@ -1503,8 +1508,7 @@ public:
 		// no gameplay buttons
 		// I sure hope nobody changes the InputMapper enum defs...
 		std::vector<std::string> keys;
-		for (GameButton gb = GAME_BUTTON_START;
-			 gb <= GAME_BUTTON_RESTART;
+		for (GameButton gb = GAME_BUTTON_START; gb <= GAME_BUTTON_RESTART;
 			 enum_add<GameButton>(gb, +1)) {
 			keys.push_back(
 			  GameButtonToString(INPUTMAPPER->GetInputScheme(), gb));
@@ -1567,7 +1571,6 @@ public:
 		p->ReadMappingsFromDisk();
 		return 0;
 	}
-
 
 	LunaInputMapper()
 	{

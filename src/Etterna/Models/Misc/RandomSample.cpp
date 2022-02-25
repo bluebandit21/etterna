@@ -1,4 +1,4 @@
-﻿#include "Etterna/Globals/global.h"
+#include "Etterna/Globals/global.h"
 #include "Core/Services/Locator.hpp"
 #include "RageUtil/Sound/RageSound.h"
 #include "RageUtil/Utils/RageUtil.h"
@@ -62,13 +62,14 @@ RandomSample::LoadSoundDir(std::string sDir, int iMaxToLoad)
 bool
 RandomSample::LoadSound(const std::string& sSoundFilePath)
 {
-	Locator::getLogger()->trace("RandomSample::LoadSound({})", sSoundFilePath.c_str());
+	Locator::getLogger()->trace("RandomSample::LoadSound({})",
+								sSoundFilePath.c_str());
 
 	auto* pSS = new RageSound;
 	if (!pSS->Load(sSoundFilePath)) {
-		Locator::getLogger()->trace("Error loading \"{}\": {}",
-				   sSoundFilePath.c_str(),
-				   pSS->GetError().c_str());
+		Locator::getLogger()->warn("RandomSample: Error loading \"{}\": {}",
+								   sSoundFilePath.c_str(),
+								   pSS->GetError().c_str());
 		delete pSS;
 		return false;
 	}

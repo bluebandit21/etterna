@@ -70,11 +70,12 @@ GraphicsWindow_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			const bool bMinimized = (HIWORD(wParam) != 0);
 			const bool bHadFocus = g_bHasFocus;
 			g_bHasFocus = !bInactive && !bMinimized;
-			if (PREFSMAN != nullptr && PREFSMAN->m_verbose_log > 1)
-				Locator::getLogger()->trace("WM_ACTIVATE ({}, {}): {}",
-						   bInactive,
-						   bMinimized,
-						   g_bHasFocus ? "has focus" : "doesn't have focus");
+			if (PREFSMAN != nullptr)
+				Locator::getLogger()->debug("WM_ACTIVATE ({}, {}): {}",
+											bInactive,
+											bMinimized,
+											g_bHasFocus ? "has focus"
+														: "doesn't have focus");
 			if (!g_bHasFocus) {
 				std::string sName = GetNewWindow();
 				static std::set<std::string> sLostFocusTo;
@@ -86,8 +87,8 @@ GraphicsWindow_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					 ++it)
 					sStr += (!sStr.empty() ? ", " : "") + *it;
 
-				if (PREFSMAN != nullptr && PREFSMAN->m_verbose_log > 1)
-                    Locator::getLogger()->trace("Lost focus to: %s", sStr);
+				if (PREFSMAN != nullptr)
+					Locator::getLogger()->debug("Lost focus to: {}", sStr);
 			}
 
 			if (!g_bD3D && !g_CurrentParams.windowed &&
@@ -148,7 +149,7 @@ GraphicsWindow_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			return 0;
 
 		case WM_CLOSE:
-			Locator::getLogger()->trace("WM_CLOSE: shutting down");
+			Locator::getLogger()->info("WM_CLOSE: shutting down");
 			GameLoop::setUserQuit();
 			return 0;
 
@@ -213,7 +214,8 @@ AdjustVideoModeParams(VideoModeParams& p)
 	dm.dmSize = sizeof(dm);
 	if (!EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &dm)) {
 		p.rate = 60;
-		Locator::getLogger()->warn(werr_ssprintf(GetLastError(), "EnumDisplaySettings failed"));
+		Locator::getLogger()->warn(
+		  werr_ssprintf(GetLastError(), "EnumDisplaySettings failed"));
 		return;
 	}
 
@@ -229,8 +231,11 @@ AdjustVideoModeParams(VideoModeParams& p)
 	if (!(dm.dmFields & DM_DISPLAYFREQUENCY) || dm.dmDisplayFrequency == 0 ||
 		dm.dmDisplayFrequency == 1) {
 		p.rate = 60;
-		Locator::getLogger()->warn("EnumDisplaySettings doesn't know what the refresh rate is. {} {} {}",
-		  dm.dmPelsWidth, dm.dmPelsHeight, dm.dmBitsPerPel);
+		Locator::getLogger()->warn(
+		  "EnumDisplaySettings doesn't know what the refresh rate is. {} {} {}",
+		  dm.dmPelsWidth,
+		  dm.dmPelsHeight,
+		  dm.dmBitsPerPel);
 	} else {
 		p.rate = dm.dmDisplayFrequency;
 	}
@@ -331,7 +336,7 @@ GraphicsWindow::CreateGraphicsWindow(const VideoModeParams& p,
 		}
 
 		g_hWndMain = hWnd;
-//		CrashHandler::SetForegroundWindow(g_hWndMain);
+		//		CrashHandler::SetForegroundWindow(g_hWndMain);
 		g_HDC = GetDC(g_hWndMain);
 	}
 
@@ -399,7 +404,8 @@ GraphicsWindow::CreateGraphicsWindow(const VideoModeParams& p,
 					  iWidth,
 					  iHeight,
 					  SWP_FRAMECHANGED | SWP_SHOWWINDOW))
-		Locator::getLogger()->warn(werr_ssprintf(GetLastError(), "SetWindowPos"));
+		Locator::getLogger()->warn(
+		  werr_ssprintf(GetLastError(), "SetWindowPos"));
 
 	SetForegroundWindow(g_hWndMain);
 
@@ -425,7 +431,7 @@ GraphicsWindow::DestroyGraphicsWindow()
 	if (g_hWndMain != nullptr) {
 		DestroyWindow(g_hWndMain);
 		g_hWndMain = nullptr;
-//		CrashHandler::SetForegroundWindow(g_hWndMain);
+		//		CrashHandler::SetForegroundWindow(g_hWndMain);
 	}
 
 	if (g_hIcon != nullptr) {
@@ -438,7 +444,6 @@ GraphicsWindow::DestroyGraphicsWindow()
 		GetMessage(&msg, nullptr, 0, 0);
 		DispatchMessage(&msg);
 	}
-
 }
 
 void
@@ -593,7 +598,8 @@ GraphicsWindow::GetDisplaySpecs(DisplaySpecs& out)
 		};
 		out.insert(DisplaySpec("", "Fullscreen", modes, m, bounds));
 	} else if (!modes.empty()) {
-		Locator::getLogger()->warn("Could not retrieve valid current display mode");
+		Locator::getLogger()->warn(
+		  "Could not retrieve valid current display mode");
 		out.insert(DisplaySpec("", "Fullscreen", *modes.begin()));
 	} else {
 		Locator::getLogger()->warn("Could not retrieve *any* DisplaySpecs!");

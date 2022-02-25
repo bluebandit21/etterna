@@ -355,13 +355,13 @@ EventImpl_Pthreads::Wait(float timeout)
 		// The RageTimer clock is different than the wait clock; convert it.
 		timeval tv;
 		gettimeofday(&tv, NULL);
-		
+
 		RageTimer timeofday(tv.tv_sec, tv.tv_usec);
 		float fSecondsInFuture = timeout;
 		timeofday += fSecondsInFuture;
 
-		auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(timeofday.c_dur);
-		auto sec = std::chrono::duration_cast<std::chrono::seconds>(timeofday.c_dur);
+		auto nsec = timeofday.tm.time_since_epoch();
+		auto sec = std::chrono::duration_cast<std::chrono::seconds>(nsec);
 		nsec -= sec;
 		abstime.tv_sec = sec.count();
 		abstime.tv_nsec = nsec.count();

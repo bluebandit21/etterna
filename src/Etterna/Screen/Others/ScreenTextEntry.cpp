@@ -42,6 +42,8 @@ static const char* g_szKeys[NUM_KeyboardRow][KEYS_PER_ROW] = {
 };
 
 std::string ScreenTextEntry::s_sLastAnswer = "";
+bool ScreenTextEntry::s_bMustResetInputRedirAtClose = false;
+bool ScreenTextEntry::s_bResetInputRedirTo = false;
 
 // Settings:
 namespace {
@@ -386,6 +388,11 @@ ScreenTextEntry::BeginScreen()
 
 	ScreenWithMenuElements::BeginScreen();
 
+	if (s_bMustResetInputRedirAtClose) {
+		s_bResetInputRedirTo = SCREENMAN->get_input_redirected(PLAYER_1);
+		SCREENMAN->set_input_redirected(PLAYER_1, false);
+	}
+
 	if (sQuestion != "")
 		m_textQuestion.SetText(sQuestion);
 	else
@@ -593,6 +600,10 @@ ScreenTextEntry::End(bool bCancelled)
 
 	s_bCancelledLast = bCancelled;
 	s_sLastAnswer = bCancelled ? std::string("") : WStringToString(m_sAnswer);
+	if (s_bMustResetInputRedirAtClose) {
+		s_bMustResetInputRedirAtClose = false;
+		SCREENMAN->set_input_redirected(PLAYER_1, s_bResetInputRedirTo);
+	}
 }
 
 bool
@@ -608,7 +619,7 @@ void
 ScreenTextEntry::TextEntrySettings::FromStack(lua_State* L)
 {
 	if (lua_type(L, 1) != LUA_TTABLE) {
-		Locator::getLogger()->trace("not a table");
+		Locator::getLogger()->error("ScreenTextEntry FromStack: not a table");
 		return;
 	}
 

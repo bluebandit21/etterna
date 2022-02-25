@@ -69,6 +69,10 @@ class MusicWheel : public WheelBase
 	// all songs by sort order by group also filtered
 	std::vector<std::map<std::string, std::vector<Song*>>>
 	  allSongsByGroupFiltered{ NUM_SortOrder };
+	// song grade progress by group
+	std::vector<std::map<std::string, int>> packProgressByGroup{
+		NUM_SortOrder
+	};
 	auto SelectSongOrCourse() -> bool;
 	void SelectSongAfterSearch();
 
@@ -132,13 +136,15 @@ class MusicWheel : public WheelBase
 	std::vector<MusicWheelItemData*> m__WheelItemDatas[NUM_SortOrder];
 	std::vector<MusicWheelItemData*> m__UnFilteredWheelItemDatas[NUM_SortOrder];
 
-	void BuildWheelItemDatas(std::vector<MusicWheelItemData*>& arrayWheelItemDatas,
-							 SortOrder so,
-							 bool searching,
-							 const std::string& findme);
-	void FilterWheelItemDatas(std::vector<MusicWheelItemData*>& aUnFilteredDatas,
-							  std::vector<MusicWheelItemData*>& aFilteredData,
-							  SortOrder so) const;
+	void BuildWheelItemDatas(
+	  std::vector<MusicWheelItemData*>& arrayWheelItemDatas,
+	  SortOrder so,
+	  bool searching,
+	  const std::string& findme);
+	void FilterWheelItemDatas(
+	  std::vector<MusicWheelItemData*>& aUnFilteredDatas,
+	  std::vector<MusicWheelItemData*>& aFilteredData,
+	  SortOrder so) const;
 	std::string prevSongTitle;
 };
 

@@ -37,7 +37,7 @@ RageMovieTexture::GetFourCC(const std::string& fn,
 	// iostream
 #define HANDLE_ERROR(x)                                                        \
 	{                                                                          \
-		Locator::getLogger()->warn("Error reading {}: {}", fn.c_str(), x);                      \
+		Locator::getLogger()->warn("Error reading {}: {}", fn.c_str(), x);     \
 		handler = type = "";                                                   \
 		return false;                                                          \
 	}
@@ -73,10 +73,10 @@ DumpAVIDebugInfo(const std::string& fn)
 	if (!RageMovieTexture::GetFourCC(fn, handler, type))
 		return;
 
-	Locator::getLogger()->trace("Movie {} has handler '{}', type '{}'",
-			   fn.c_str(),
-			   handler.c_str(),
-			   type.c_str());
+	Locator::getLogger()->debug("Movie {} has handler '{}', type '{}'",
+								fn.c_str(),
+								handler.c_str(),
+								type.c_str());
 }
 
 static Preference<std::string> g_sMovieDrivers("MovieDrivers",
@@ -110,7 +110,8 @@ RageMovieTexture::Create(const RageTextureID& ID)
 		  RageMovieTextureDriver::m_pDriverList.Create(Driver);
 
 		if (pDriverBase == nullptr) {
-			Locator::getLogger()->trace("Unknown movie driver name: {}", Driver);
+			Locator::getLogger()->trace("Unknown movie driver name: {}",
+										Driver);
 			continue;
 		}
 
@@ -123,13 +124,15 @@ RageMovieTexture::Create(const RageTextureID& ID)
 		delete pDriver;
 
 		if (ret == nullptr) {
-			Locator::getLogger()->trace("Couldn't load driver {}: {}", Driver, sError.c_str());
+			Locator::getLogger()->trace(
+			  "Couldn't load driver {}: {}", Driver, sError.c_str());
 			SAFE_DELETE(ret);
 			continue;
 		}
-		Locator::getLogger()->trace("Created movie texture \"{}\" with driver \"{}\"",
-				   ID.filename.c_str(),
-				   Driver.c_str());
+		Locator::getLogger()->debug(
+		  "Created movie texture \"{}\" with driver \"{}\"",
+		  ID.filename.c_str(),
+		  Driver.c_str());
 		break;
 	}
 	if (!ret)

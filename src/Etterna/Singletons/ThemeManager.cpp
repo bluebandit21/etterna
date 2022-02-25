@@ -97,9 +97,10 @@ class LocalizedStringImplThemeMetric
 		std::string const& curLanguage =
 		  (THEME && THEME->IsThemeLoaded() ? THEME->GetCurLanguage()
 										   : "current");
-		Locator::getLogger()->warn("Missing translation for {} in the {} language.",
-				  m_sName.c_str(),
-				  curLanguage.c_str());
+		Locator::getLogger()->warn(
+		  "Missing translation for {} in the {} language.",
+		  m_sName.c_str(),
+		  curLanguage.c_str());
 		return m_sName;
 	}
 };
@@ -386,10 +387,8 @@ ThemeManager::LoadThemeMetrics(const std::string& sThemeName_,
 		g_pLoadedThemeData->iniMetrics.SetValue(sBits[0], sBits[1], sBits[2]);
 	}
 
-	if (PREFSMAN->m_verbose_log > 1) {
-        Locator::getLogger()->trace("Theme: {}", m_sCurThemeName.c_str());
-        Locator::getLogger()->trace("Language: {}", m_sCurLanguage.c_str());
-	}
+	Locator::getLogger()->info("Theme: {}", m_sCurThemeName.c_str());
+	Locator::getLogger()->info("Language: {}", m_sCurLanguage.c_str());
 }
 
 std::string
@@ -411,20 +410,22 @@ ThemeManager::SwitchThemeAndLanguage(const std::string& sThemeName_,
 	// SpecialFiles::BASE_THEME_NAME is _fallback now. -aj
 	if (!IsThemeSelectable(sThemeName)) {
 		std::string to_try = PREFSMAN->m_sTheme.GetDefault();
-		Locator::getLogger()->warn("Selected theme '{}' not found.  "
-				  "Trying Theme preference default value '{}'.",
-				  sThemeName.c_str(),
-				  to_try.c_str());
+		Locator::getLogger()->warn(
+		  "Selected theme '{}' not found.  "
+		  "Trying Theme preference default value '{}'.",
+		  sThemeName.c_str(),
+		  to_try.c_str());
 		sThemeName = to_try;
 		// sm-ssc's SpecialFiles::BASE_THEME_NAME is _fallback, which you can't
 		// select. This requires a preference, which allows it to be adapted for
 		// other purposes (e.g. PARASTAR).
 		if (!IsThemeSelectable(sThemeName)) {
 			to_try = PREFSMAN->m_sDefaultTheme.Get();
-			Locator::getLogger()->warn("Theme preference defaults to '{}', which cannot be used."
-					  "  Trying DefaultTheme preference '{}'.",
-					  sThemeName.c_str(),
-					  to_try.c_str());
+			Locator::getLogger()->warn(
+			  "Theme preference defaults to '{}', which cannot be used."
+			  "  Trying DefaultTheme preference '{}'.",
+			  sThemeName.c_str(),
+			  to_try.c_str());
 			sThemeName = to_try;
 			if (!IsThemeSelectable(sThemeName)) {
 				std::vector<std::string> theme_names;
@@ -432,9 +433,10 @@ ThemeManager::SwitchThemeAndLanguage(const std::string& sThemeName_,
 				ASSERT_M(!theme_names.empty(),
 						 "No themes found, unable to start stepmania.");
 				to_try = theme_names[0];
-				Locator::getLogger()->warn("DefaultTheme preference is '{}', which cannot be found. Using '{}'.",
-				  sThemeName.c_str(),
-				  to_try.c_str());
+				Locator::getLogger()->warn("DefaultTheme preference is '{}', "
+										   "which cannot be found. Using '{}'.",
+										   sThemeName.c_str(),
+										   to_try.c_str());
 				sThemeName = to_try;
 				PREFSMAN->m_sDefaultTheme.Set(to_try);
 			}
@@ -447,10 +449,10 @@ ThemeManager::SwitchThemeAndLanguage(const std::string& sThemeName_,
 	if (sLanguage.empty())
 		sLanguage = GetDefaultLanguage();
 
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->trace("ThemeManager::SwitchThemeAndLanguage: \"{}\", \"{}\"",
-				   sThemeName.c_str(),
-				   sLanguage.c_str());
+	Locator::getLogger()->info(
+	  "ThemeManager::SwitchThemeAndLanguage: \"{}\", \"{}\"",
+	  sThemeName.c_str(),
+	  sLanguage.c_str());
 
 	bool bNothingChanging = sThemeName == m_sCurThemeName &&
 							sLanguage == m_sCurLanguage &&
@@ -556,15 +558,15 @@ ThemeManager::RunLuaScripts(const std::string& sMask, bool bUseThemeDir)
 
 		// load Lua files
 		for (auto& sPath : asElementPaths) {
-			if (PREFSMAN->m_verbose_log > 1)
-				Locator::getLogger()->trace("Loading \"{}\" ...", sPath.c_str());
+			Locator::getLogger()->info("Loading \"{}\" ...", sPath.c_str());
 			LuaHelpers::RunScriptFile(sPath);
 		}
 	} while (iter != g_vThemes.begin());
 
 	/* TODO: verify whether this final check is necessary. */
 	if (sCurThemeName != m_sCurThemeName) {
-		Locator::getLogger()->warn("ThemeManager: theme name was not restored after RunLuaScripts");
+		Locator::getLogger()->warn(
+		  "ThemeManager: theme name was not restored after RunLuaScripts");
 		m_sCurThemeName = sCurThemeName;
 	}
 }
@@ -900,7 +902,8 @@ try_element_again:
 			  "could not be found in \"" +
 			  GetThemeDirFromName(m_sCurThemeName) + "\" or \"" +
 			  GetThemeDirFromName(SpecialFiles::BASE_THEME_NAME) + "\".";
-			Locator::getLogger()->warn("Theme element {} {}", element.c_str(), error.c_str());
+			Locator::getLogger()->warn(
+			  "Theme element {} {}", element.c_str(), error.c_str());
 			LuaHelpers::ScriptErrorMessage("'" + element + "' " + error);
 		}
 
@@ -915,8 +918,11 @@ try_element_again:
 			Cache[sFileName] = out;
 			return true;
 		case Dialog::abort:
-            Locator::getLogger()->warn("Theme element {}/{} could not be found in \"{}\" or \"{}\"",
-			  sCategory, sFileName, GetThemeDirFromName(m_sCurThemeName).c_str(),
+			Locator::getLogger()->warn(
+			  "Theme element {}/{} could not be found in \"{}\" or \"{}\"",
+			  sCategory,
+			  sFileName,
+			  GetThemeDirFromName(m_sCurThemeName).c_str(),
 			  GetThemeDirFromName(SpecialFiles::BASE_THEME_NAME).c_str());
 			RageException::Throw(
 			  "Theme element \"%s/%s\" could not be found in \"%s\" or \"%s\".",
@@ -1093,9 +1099,13 @@ ThemeManager::GetMetricRaw(const IniFile& ini,
 				ReloadMetrics();
 				continue;
 			case Dialog::ignore:
-				Locator::getLogger()->warn("{} {}::{} could not be found in \"{}\" or \"{}\".",
-			            sType, sMetricsGroup, sValueName, sCurMetricPath.c_str(),
-						sDefaultMetricPath.c_str());
+				Locator::getLogger()->warn(
+				  "{} {}::{} could not be found in \"{}\" or \"{}\".",
+				  sType,
+				  sMetricsGroup,
+				  sValueName,
+				  sCurMetricPath.c_str(),
+				  sDefaultMetricPath.c_str());
 				return std::string();
 			default:
 				FAIL_M("Unexpected answer to Abort/Retry/Ignore dialog");
@@ -1538,7 +1548,7 @@ class LunaThemeManager : public Luna<ThemeManager>
 		for (auto& s : langs) {
 			result.push_back(s);
 		}
-		
+
 		LuaHelpers::CreateTableFromArray<std::string>(result, L);
 		return 1;
 	}
@@ -1605,6 +1615,18 @@ class LunaThemeManager : public Luna<ThemeManager>
 		GameLoop::ChangeTheme(theme_name);
 		return 0;
 	}
+	static int SwitchThemeAndLanguage(T* p, lua_State* L)
+	{
+		std::string theme_name = SArg(1);
+		if (!p->IsThemeSelectable(theme_name)) {
+			luaL_error(L, "SetTheme: Invalid Theme: '%s'", theme_name.c_str());
+		}
+		std::string lang_name = SArg(2);
+
+		p->SwitchThemeAndLanguage(
+		  theme_name, lang_name, PREFSMAN->m_bPseudoLocalize);
+		return 0;
+	}
 
 	LunaThemeManager()
 	{
@@ -1636,6 +1658,7 @@ class LunaThemeManager : public Luna<ThemeManager>
 		ADD_METHOD(GetMetricNamesInGroup);
 		ADD_METHOD(GetStringNamesInGroup);
 		ADD_METHOD(SetTheme);
+		ADD_METHOD(SwitchThemeAndLanguage);
 	}
 };
 

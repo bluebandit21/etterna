@@ -13,8 +13,9 @@
  * pattern sequence detection through intervals, reducing the error caused by
  * interval splicing*/
 
-// remember this is hand _agnostic_ meaning it operates fully on note info, and
-// needs no derived column logic
+/// Meta info for the interval, to describe patterning using consecutive
+/// noterows. remember this is hand _agnostic_ meaning it operates fully on note
+/// info, and needs no derived column logic
 struct metaItvInfo
 {
 	ItvInfo _itvi;
@@ -55,7 +56,7 @@ struct metaItvInfo
 		zwop = 0;
 		shared_chord_jacks = 0;
 		dunk_it = false;
-		
+
 		row_variations.fill(0);
 		num_var = 0;
 

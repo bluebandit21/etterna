@@ -397,6 +397,11 @@ PlayerStageStats::GetHoldReplayDataVector() const
 {
 	return m_vHoldReplayData;
 }
+std::vector<MineReplayResult>
+PlayerStageStats::GetMineReplayDataVector() const
+{
+	return m_vMineReplayData;
+}
 
 float
 PlayerStageStats::GetCurMaxPercentDancePoints() const
@@ -1024,8 +1029,9 @@ LuaFunction(GetGradeFromPercent, GetGradeFromPercent(FArg(1)))
 		if (lua_gettop(L) >= 2 && !lua_isnil(L, 2)) {
 			samples = IArg(2);
 			if (samples <= 0) {
-				Locator::getLogger()->trace("PlayerStageStats:GetLifeRecord requires an integer "
-						   "greater than 0.  Defaulting to 100.");
+				Locator::getLogger()->trace(
+				  "PlayerStageStats:GetLifeRecord requires an integer "
+				  "greater than 0.  Defaulting to 100.");
 				samples = 100;
 			}
 		}
@@ -1048,8 +1054,9 @@ LuaFunction(GetGradeFromPercent, GetGradeFromPercent(FArg(1)))
 		if (lua_gettop(L) >= 2 && !lua_isnil(L, 2)) {
 			samples = IArg(2);
 			if (samples <= 0) {
-				Locator::getLogger()->trace("PlayerStageStats:GetLifeRecord requires an integer "
-						   "greater than 0.  Defaulting to 100.");
+				Locator::getLogger()->trace(
+				  "PlayerStageStats:GetLifeRecord requires an integer "
+				  "greater than 0.  Defaulting to 100.");
 				samples = 100;
 			}
 		}

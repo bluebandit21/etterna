@@ -50,7 +50,7 @@ using std::to_string;
  * the directory hash) in order to find the cache file.
  */
 const std::string CACHE_DB = SpecialFiles::CACHE_DIR + "cache.db";
-const unsigned int CACHE_DB_VERSION = 243;
+const unsigned int CACHE_DB_VERSION = 244;
 
 SongCacheIndex* SONGINDEX; // global and accessible from anywhere in our program
 
@@ -131,7 +131,6 @@ SongCacheIndex::InsertStepsTimingData(const TimingData& timing) const
 									  segment->GetPause()));
 			}
 			stops = stops.substr(0, stops.size() - 1); // Remove trailing ','
-
 		}
 		insertTimingData.bind(timingDataIndex++, stops);
 	}
@@ -146,7 +145,6 @@ SongCacheIndex::InsertStepsTimingData(const TimingData& timing) const
 									   segment->GetPause()));
 			}
 			delays = delays.substr(0, delays.size() - 1); // Remove trailing ','
-
 		}
 		insertTimingData.bind(timingDataIndex++, delays);
 	}
@@ -161,7 +159,6 @@ SongCacheIndex::InsertStepsTimingData(const TimingData& timing) const
 									  segment->GetLength()));
 			}
 			warps = warps.substr(0, warps.size() - 1); // Remove trailing ','
-
 		}
 		insertTimingData.bind(timingDataIndex++, warps);
 	}
@@ -178,7 +175,6 @@ SongCacheIndex::InsertStepsTimingData(const TimingData& timing) const
 			}
 			timesigs =
 			  timesigs.substr(0, timesigs.size() - 1); // Remove trailing ','
-
 		}
 		insertTimingData.bind(timingDataIndex++, timesigs);
 	}
@@ -193,7 +189,6 @@ SongCacheIndex::InsertStepsTimingData(const TimingData& timing) const
 									  segment->GetTicks()));
 			}
 			ticks = ticks.substr(0, ticks.size() - 1); // Remove trailing ','
-
 		}
 		insertTimingData.bind(timingDataIndex++, ticks);
 	}
@@ -215,7 +210,6 @@ SongCacheIndex::InsertStepsTimingData(const TimingData& timing) const
 				}
 			}
 			combos = combos.substr(0, combos.size() - 1); // Remove trailing ','
-
 		}
 		insertTimingData.bind(timingDataIndex++, combos);
 	}
@@ -232,7 +226,6 @@ SongCacheIndex::InsertStepsTimingData(const TimingData& timing) const
 									   segment->GetUnit()));
 			}
 			speeds = speeds.substr(0, speeds.size() - 1); // Remove trailing ','
-
 		}
 		insertTimingData.bind(timingDataIndex++, speeds);
 	}
@@ -248,7 +241,6 @@ SongCacheIndex::InsertStepsTimingData(const TimingData& timing) const
 			}
 			scrolls =
 			  scrolls.substr(0, scrolls.size() - 1); // Remove trailing ','
-
 		}
 		insertTimingData.bind(timingDataIndex++, scrolls);
 	}
@@ -265,14 +257,15 @@ SongCacheIndex::InsertStepsTimingData(const TimingData& timing) const
 				}
 			}
 			labels = labels.substr(0, labels.size() - 1); // Remove trailing ','
-
 		}
 		insertTimingData.bind(timingDataIndex++, labels);
 	}
 	try {
 		insertTimingData.exec();
 	} catch (exception& e) {
-		Locator::getLogger()->warn("Failed to execute statement to insert TimingData from Cache: {}", e.what());
+		Locator::getLogger()->warn(
+		  "Failed to execute statement to insert TimingData from Cache: {}",
+		  e.what());
 	}
 	return sqlite3_last_insert_rowid(db->getHandle());
 }
@@ -353,7 +346,9 @@ SongCacheIndex::InsertSteps(Steps* pSteps, int64_t songID) const
 	try {
 		insertSteps.exec();
 	} catch (exception& e) {
-		Locator::getLogger()->warn("Failed to execute statement to insert Steps from Cache: {}", e.what());
+		Locator::getLogger()->warn(
+		  "Failed to execute statement to insert Steps from Cache: {}",
+		  e.what());
 	}
 	return sqlite3_last_insert_rowid(db->getHandle());
 }
@@ -361,6 +356,7 @@ SongCacheIndex::InsertSteps(Steps* pSteps, int64_t songID) const
 bool
 SongCacheIndex::CacheSong(Song& song, const std::string& dir) const
 {
+	Locator::getLogger()->debug("Caching song {}", dir);
 	DeleteSongFromDBByDir(dir);
 	try {
 		SQLite::Statement insertSong(*db,
@@ -563,22 +559,23 @@ SongCacheIndex::CacheSong(Song& song, const std::string& dir) const
 		auto vpStepsToSave = song.GetStepsToSave();
 		for (auto* steps : vpStepsToSave) {
 			if (steps->m_StepsType >= NUM_StepsType) {
-				Locator::getLogger()->info("Not caching unrecognized stepstype in file {}",
-						  dir.c_str());
+				Locator::getLogger()->info(
+				  "Not caching unrecognized stepstype in file {}", dir.c_str());
 				continue;
 			}
 			if (steps->GetChartKey().empty()) { // Avoid writing cache tags for
 												// invalid chartkey files(empty
 												// steps) -Mina
-				Locator::getLogger()->info("Not caching empty difficulty in file {}",
-						  dir.c_str());
+				Locator::getLogger()->info(
+				  "Not caching empty difficulty in file {}", dir.c_str());
 				continue;
 			}
 			auto stepsID = InsertSteps(steps, songID);
 		}
 		return true;
 	} catch (std::exception& e) {
-		Locator::getLogger()->trace("Error saving song {} to cache db: {}", dir.c_str(), e.what());
+		Locator::getLogger()->warn(
+		  "Error saving song {} to cache db: {}", dir.c_str(), e.what());
 		return false;
 	}
 }
@@ -595,7 +592,7 @@ SongCacheIndex::DeleteDB()
 								  SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE |
 									SQLITE_OPEN_FULLMUTEX);
 	} catch (std::exception& e) {
-		Locator::getLogger()->trace("Error reading cache db: {}", e.what());
+		Locator::getLogger()->warn("Error reading cache db: {}", e.what());
 		if (curTransaction != nullptr) {
 			delete curTransaction;
 			curTransaction = nullptr;
@@ -665,7 +662,8 @@ SongCacheIndex::CreateDBTables() const
 		db->exec("INSERT INTO dbinfo VALUES (NULL, " +
 				 to_string(CACHE_DB_VERSION) + ")");
 	} catch (SQLite::Exception& e) {
-		Locator::getLogger()->warn("Failed to create Cache DB Tables: {}", e.what());
+		Locator::getLogger()->warn("Failed to create Cache DB Tables: {}",
+								   e.what());
 	}
 }
 /*	Returns weather or not the db had valid data*/
@@ -700,7 +698,7 @@ SongCacheIndex::OpenDB()
 			return true;
 		}
 	} catch (std::exception& e) {
-		Locator::getLogger()->trace("Error reading cache db: {}", e.what());
+		Locator::getLogger()->warn("Error reading cache db: {}", e.what());
 		if (curTransaction != nullptr) {
 			delete curTransaction;
 			curTransaction = nullptr;
@@ -720,7 +718,7 @@ SongCacheIndex::~SongCacheIndex()
 	if (curTransaction != nullptr) {
 		try {
 			curTransaction->commit();
-		} catch (exception& e) {
+		} catch (...) {
 			// DB transaction commit failed, we're destructing so we dont care.
 			// There really shouldnt be a transaction left anyways
 		}
@@ -761,9 +759,10 @@ SongCacheIndex::LoadHyperCache(LoadingWindow* ld,
 		}
 
 	} catch (std::exception& e) {
-		Locator::getLogger()->trace("Error reading cache. last dir: {} . Error: {}",
-				   lastDir.c_str(),
-				   e.what());
+		Locator::getLogger()->warn(
+		  "Error reading cache. last dir: {} . Error: {}",
+		  lastDir.c_str(),
+		  e.what());
 		ResetDB();
 		return;
 	}
@@ -795,6 +794,7 @@ SongCacheIndex::LoadCache(
   LoadingWindow* ld,
   std::vector<pair<pair<std::string, unsigned int>, Song*>*>& cache) const
 {
+	Locator::getLogger()->info("Beginning LoadCache");
 	auto count = 0;
 	try {
 		count = db->execAndGet("SELECT COUNT(*) FROM songs");
@@ -805,19 +805,23 @@ SongCacheIndex::LoadCache(
 			ld->SetTotalWork(count);
 		}
 	} catch (exception& e) {
-		Locator::getLogger()->warn("Failed to count all from songs table in Cache DB: {}", e.what());
+		Locator::getLogger()->warn(
+		  "Failed to count all from songs table in Cache DB: {}", e.what());
 	}
 	cache.reserve(count);
 	auto fivePercent = std::max(count / 100 * 5, 1);
 	const unsigned int threads = std::thread::hardware_concurrency();
-	const auto limit = count / threads;
+	const unsigned int limit =
+	  std::ceil(static_cast<float>(count) / static_cast<float>(threads));
+
 	ThreadData data;
 	std::atomic<bool> abort(false);
 	auto threadCallback =
 	  [&data, fivePercent, &abort](
 		int limit,
 		int offset,
-		std::vector<pair<pair<std::string, unsigned int>, Song*>*>* cachePart) {
+		std::vector<pair<pair<std::string, unsigned int>, Song*>*>* cachePart,
+		int index) {
 		  auto counter = 0;
 		  auto lastUpdate = 0;
 		  try {
@@ -842,9 +846,9 @@ SongCacheIndex::LoadCache(
 					  data.setUpdated(true);
 				  }
 			  }
-
 		  } catch (std::exception& e) {
-			  Locator::getLogger()->trace("Error reading cache. Error: {}", e.what());
+			  Locator::getLogger()->warn(
+				"Error reading cache - ABORTING. Error: {}", e.what());
 			  if (abort)
 				  return;
 			  abort = true;
@@ -852,20 +856,23 @@ SongCacheIndex::LoadCache(
 			  SONGINDEX->ResetDB();
 			  return;
 		  }
+		  Locator::getLogger()->info("LoadCache Thread {} Finished", index);
 		  data._threadsFinished++;
 		  data.setUpdated(true);
 	  };
 	std::vector<thread> threadpool;
-	std::vector<std::vector<pair<pair<std::string, unsigned int>, Song*>*>> cacheParts;
+	std::vector<std::vector<pair<pair<std::string, unsigned int>, Song*>*>>
+	  cacheParts;
 	cacheParts.reserve(threads);
-	for (auto i = 0; i < threads; i++)
+	for (unsigned int i = 0; i < threads; i++)
 		cacheParts.emplace_back(
 		  std::vector<pair<pair<std::string, unsigned int>, Song*>*>());
 	threadpool.reserve(threads);
-	for (auto i = 0; i < threads; i++)
+	for (unsigned int i = 0; i < threads; i++)
 		threadpool.emplace_back(
-		  thread(threadCallback, limit, i * limit, &(cacheParts[i])));
-	while (data._threadsFinished < threads) {
+		  thread(threadCallback, limit, i * limit, &(cacheParts[i]), i));
+	Locator::getLogger()->info("LoadCache Started {} Threads", threads);
+	while (data._threadsFinished < static_cast<int>(threads)) {
 		data.waitForUpdate();
 		if (abort) {
 			for (auto& thread : threadpool)
@@ -880,6 +887,7 @@ SongCacheIndex::LoadCache(
 	for (auto& thread : threadpool)
 		thread.join();
 	cache = join(cacheParts);
+	Locator::getLogger()->info("Finished LoadCache");
 }
 void
 SongCacheIndex::DeleteSongFromDBByCondition(const string& condition) const
@@ -896,8 +904,11 @@ SongCacheIndex::DeleteSongFromDBByCondition(const string& condition) const
 			.c_str());
 		db->exec(("DELETE FROM songs WHERE " + condition).c_str());
 	} catch (exception& e) {
-		Locator::getLogger()->warn("Failed to execute Song Deletion from DB with condition "
-				  "'{}'\nException: {}", condition.c_str(), e.what());
+		Locator::getLogger()->warn(
+		  "Failed to execute Song Deletion from DB with condition "
+		  "'{}'\nException: {}",
+		  condition.c_str(),
+		  e.what());
 	}
 }
 void
@@ -950,7 +961,8 @@ SongCacheIndex::StartTransaction()
 	try {
 		curTransaction = new SQLite::Transaction(*db);
 	} catch (exception& e) {
-		Locator::getLogger()->warn("Failed to start transaction due to exception: {}", e.what());
+		Locator::getLogger()->warn(
+		  "Failed to start transaction due to exception: {}", e.what());
 	}
 }
 void
@@ -960,7 +972,7 @@ SongCacheIndex::FinishTransaction()
 		return;
 	try {
 		curTransaction->commit();
-	} catch (exception& e) {
+	} catch (...) {
 		// DB transaction commit failed, we're destructing so we dont care.
 		// There really shouldnt be a transaction left anyways
 	}
@@ -1325,15 +1337,17 @@ SongCacheIndex::SongFromStatement(Song* song, SQLite::Statement& query) const
 		song->m_sPreviewVidPath =
 		  static_cast<const char*>(query.getColumn(index++));
 	} catch (exception& e) {
-		Locator::getLogger()->warn("Exception occurred while loading file from cache: {}", e.what());
+		Locator::getLogger()->warn(
+		  "Exception occurred while loading file from cache: {}", e.what());
 	}
 
 	SMLoader::TidyUpData(*song, true);
 
 	if (song->m_sMainTitle.empty() ||
 		(song->m_sMusicFile.empty() && song->m_vsKeysoundFile.empty())) {
-		/*Locator::getLogger()->warn("Main title or music file for '{}' came up blank, forced to "
-				  "fall back on TidyUpData to fix title and paths.  Do not use "
+		/*Locator::getLogger()->warn("Main title or music file for '{}' came up
+		   blank, forced to " "fall back on TidyUpData to fix title and paths.
+		   Do not use "
 				  "# or ; in a song title.", dir.c_str());*/
 		// Tell TidyUpData that it's not loaded from the cache because it needs
 		// to hit the song folder to find the files that weren't found. -Kyz
@@ -1358,7 +1372,8 @@ SongCacheIndex::LoadSongFromCache(Song* song, const std::string& dir)
 
 		SongFromStatement(song, query);
 	} catch (std::exception& e) {
-		Locator::getLogger()->trace("Error reading song {} from cache: {}", dir.c_str(), e.what());
+		Locator::getLogger()->error(
+		  "Error reading song {} from cache: {}", dir.c_str(), e.what());
 		ResetDB();
 		return false;
 	}

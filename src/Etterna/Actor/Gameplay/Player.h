@@ -108,6 +108,7 @@ class Player : public ActorFrame
 	void AddNoteToReplayData(int col,
 							 const TapNote* pTN,
 							 int RowOfOverlappingNoteOrRow) const;
+	void AddMineToReplayData(int col, int row) const;
 
 	virtual void Step(int col,
 					  int row,
@@ -132,15 +133,6 @@ class Player : public ActorFrame
 	auto GetNoteData() const -> const NoteData& { return m_NoteData; }
 	auto HasVisibleParts() const -> bool { return m_pNoteField != nullptr; }
 
-	void SetActorWithJudgmentPosition(Actor* pActor)
-	{
-		m_pActorWithJudgmentPosition = pActor;
-	}
-	void SetActorWithComboPosition(Actor* pActor)
-	{
-		m_pActorWithComboPosition = pActor;
-	}
-
 	void SetSendJudgmentAndComboMessages(bool b)
 	{
 		m_bSendJudgmentAndComboMessages = b;
@@ -156,8 +148,8 @@ class Player : public ActorFrame
 	bool m_inside_lua_set_life;
 
 	// Mina perma-temp stuff
-	std::vector<int> nerv;	// the non empty row vector where we are somehwere in
-	size_t nervpos = 0; // where we are in the non-empty row vector
+	std::vector<int> nerv; // the non empty row vector where we are somehwere in
+	size_t nervpos = 0;	   // where we are in the non-empty row vector
 	float maxwifescore = 0.F;
 	float curwifescore = 0.F;
 	float wifescorepersonalbest = 0.F;
@@ -200,7 +192,7 @@ class Player : public ActorFrame
 						   unsigned int iOldMissCombo) const;
 	void PlayKeysound(const TapNote& tn, TapNoteScore score);
 
-	void SetMineJudgment(TapNoteScore tns, int iTrack);
+	void SetMineJudgment(TapNoteScore tns, int iTrack, int iRow);
 	void SetJudgment(int iRow, int iFirstTrack, const TapNote& tn)
 	{
 		SetJudgment(
@@ -272,8 +264,6 @@ class Player : public ActorFrame
 
 	AutoActor m_sprJudgment;
 	AutoActor m_sprCombo;
-	Actor* m_pActorWithJudgmentPosition;
-	Actor* m_pActorWithComboPosition;
 
 	TapNoteScore m_LastTapNoteScore;
 	LifeMeter* m_pLifeMeter;
@@ -292,11 +282,6 @@ class Player : public ActorFrame
 	RageSound m_soundMine;
 
 	std::vector<RageSound> m_vKeysounds;
-
-#define NUM_REVERSE 2
-#define NUM_CENTERED 2
-	TweenState m_tsJudgment[NUM_REVERSE][NUM_CENTERED];
-	TweenState m_tsCombo[NUM_REVERSE][NUM_CENTERED];
 
 	bool m_bSendJudgmentAndComboMessages;
 	bool m_bTickHolds;

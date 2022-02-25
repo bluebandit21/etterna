@@ -118,7 +118,8 @@ OptionRowHandlerUtil::SelectExactlyOne(int iSelection,
 }
 
 auto
-OptionRowHandlerUtil::GetOneSelection(const std::vector<bool>& vbSelected) -> int
+OptionRowHandlerUtil::GetOneSelection(const std::vector<bool>& vbSelected)
+  -> int
 {
 	auto iRet = -1;
 	for (unsigned i = 0; i < vbSelected.size(); i++) {
@@ -323,7 +324,7 @@ class OptionRowHandlerList : public OptionRowHandler
 				  ssprintf("No options in row \"list,%s\" were selected, "
 						   "and no fallback row found; selected entry 0",
 						   m_Def.m_sName.c_str());
-				Locator::getLogger()->warn(s.c_str());
+				Locator::getLogger()->warn("{}", s.c_str());
 				iFallbackOption = 0;
 			}
 
@@ -413,7 +414,7 @@ SortNoteSkins(std::vector<std::string>& asSkinNames)
 
 class OptionRowHandlerListNoteSkins : public OptionRowHandlerList
 {
-	virtual auto LoadInternal(const Commands & /*cmds*/) -> bool
+	virtual auto LoadInternal(const Commands& /*cmds*/) -> bool
 	{
 		m_Def.m_sName = "NoteSkins";
 		m_Def.m_bOneChoiceForAllPlayers = false;
@@ -442,7 +443,7 @@ class OptionRowHandlerListNoteSkins : public OptionRowHandlerList
 // XXX: very similar to OptionRowHandlerSteps
 class OptionRowHandlerListSteps : public OptionRowHandlerList
 {
-	auto LoadInternal(const Commands & /*cmds*/) -> bool override
+	auto LoadInternal(const Commands& /*cmds*/) -> bool override
 	{
 		m_Def.m_sName = "Steps";
 		m_Def.m_bAllowThemeItems = false; // we theme the text ourself
@@ -667,7 +668,7 @@ class OptionRowHandlerSteps : public OptionRowHandler
 
 class OptionRowHandlerListStyles : public OptionRowHandlerList
 {
-	auto LoadInternal(const Commands & /*cmds*/) -> bool override
+	auto LoadInternal(const Commands& /*cmds*/) -> bool override
 	{
 		m_Def.m_bOneChoiceForAllPlayers = true;
 		m_Def.m_sName = "Style";
@@ -691,7 +692,7 @@ class OptionRowHandlerListStyles : public OptionRowHandlerList
 
 class OptionRowHandlerListGroups : public OptionRowHandlerList
 {
-	auto LoadInternal(const Commands & /*cmds*/) -> bool override
+	auto LoadInternal(const Commands& /*cmds*/) -> bool override
 	{
 		m_Def.m_bOneChoiceForAllPlayers = true;
 		m_Def.m_bAllowThemeItems = false; // we theme the text ourself
@@ -722,7 +723,7 @@ class OptionRowHandlerListGroups : public OptionRowHandlerList
 
 class OptionRowHandlerListDifficulties : public OptionRowHandlerList
 {
-	auto LoadInternal(const Commands & /*cmds*/) -> bool override
+	auto LoadInternal(const Commands& /*cmds*/) -> bool override
 	{
 		m_Def.m_bOneChoiceForAllPlayers = true;
 		m_Def.m_sName = "Difficulty";
@@ -758,7 +759,7 @@ class OptionRowHandlerListDifficulties : public OptionRowHandlerList
 // XXX: very similar to OptionRowHandlerSongChoices
 class OptionRowHandlerListSongsInCurrentSongGroup : public OptionRowHandlerList
 {
-	auto LoadInternal(const Commands & /*cmds*/) -> bool override
+	auto LoadInternal(const Commands& /*cmds*/) -> bool override
 	{
 		const auto& vpSongs =
 		  SONGMAN->GetSongs(GAMESTATE->m_sPreferredSongGroup);

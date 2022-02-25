@@ -234,9 +234,9 @@ SongManager::DifferentialReloadDir(string dir) -> int
 		if (loaded == 0) {
 			continue;
 		}
-		Locator::getLogger()->trace("Differential load of {} songs from \"{}\"",
-									loaded,
-									(dir + group.name).c_str());
+		Locator::getLogger()->info("Differential load of {} songs from \"{}\"",
+								   loaded,
+								   (dir + group.name).c_str());
 
 		AddGroup(dir, group.name);
 		IMAGECACHE->CacheImage("Banner",
@@ -298,6 +298,7 @@ std::mutex songLoadingSONGMANMutex;
 void
 SongManager::InitSongsFromDisk(LoadingWindow* ld)
 {
+	Locator::getLogger()->info("Beginning InitSongsFromDisk");
 	RageTimer tm;
 	// Tell SONGINDEX to not write the cache index file every time a song adds
 	// an entry. -Kyz
@@ -361,21 +362,28 @@ SongManager::InitSongsFromDisk(LoadingWindow* ld)
 			ld->SetProgress(progress);
 		}
 	};
+	const int THREADS =
+	  PREFSMAN->ThreadsToUse <= 0 ? std::thread::hardware_concurrency()
+	  : PREFSMAN->ThreadsToUse <
+		  static_cast<int>(std::thread::hardware_concurrency())
+		? PREFSMAN->ThreadsToUse
+		: static_cast<int>(std::thread::hardware_concurrency());
+	Locator::getLogger()->info("InitSongsFromDisk Starting {} Threads",
+							   THREADS);
 	parallelExecution<std::pair<std::pair<std::string, unsigned int>, Song*>*>(
 	  cache,
 	  onUpdate,
 	  callback,
 	  static_cast<void*>(new std::pair<int, LoadingWindow*>(onePercent, ld)));
+	Locator::getLogger()->info("InitSongsFromDisk Threads Finished");
 	LoadStepManiaSongDir(SpecialFiles::SONGS_DIR, ld);
 	LoadStepManiaSongDir(ADDITIONAL_SONGS_DIR, ld);
 	LoadEnabledSongsFromPref();
 	SONGINDEX->delay_save_cache = false;
 
-	if (PREFSMAN->m_verbose_log > 1) {
-		Locator::getLogger()->trace("Found {} songs in {} seconds.",
-									static_cast<unsigned int>(m_pSongs.size()),
-									tm.GetDeltaTime());
-	}
+	Locator::getLogger()->info("InitSongsFromDisk Found {} songs in {} seconds",
+							   static_cast<unsigned int>(m_pSongs.size()),
+							   tm.GetDeltaTime());
 	for (auto& pair : cache) {
 		delete pair;
 	}
@@ -391,8 +399,8 @@ SongManager::CalcTestStuff()
 	// output calc differences for chartkeys and targets and stuff
 	for (const auto& p : testChartList) {
 		auto ss = p.first;
-		Locator::getLogger()->trace("\nStarting calc test group {}\n",
-									SkillsetToString(ss).c_str());
+		Locator::getLogger()->info("\nStarting calc test group {}\n",
+								   SkillsetToString(ss).c_str());
 		for (const auto& chart : p.second.filemapping) {
 
 			if (StepsByKey.count(chart.first) != 0u) {
@@ -406,8 +414,8 @@ SongManager::CalcTestStuff()
 	FOREACH_ENUM(Skillset, ss)
 	{
 		if (!test_vals[ss].empty()) {
-			Locator::getLogger()->trace(
-			  "%{:+0.2f} avg delta for test group {}",
+			Locator::getLogger()->info(
+			  "{:+0.2f} avg delta for test group {}",
 			  std::accumulate(begin(test_vals[ss]), end(test_vals[ss]), 0.F) /
 				test_vals[ss].size(),
 			  SkillsetToString(ss).c_str());
@@ -768,7 +776,7 @@ SongManager::AddGroup(const std::string& sDir, const std::string& sGroupDirName)
 	std::vector<std::string> exts;
 	ActorUtil::AddTypeExtensionsToList(FT_Bitmap, exts);
 	ActorUtil::AddTypeExtensionsToList(FT_Movie, exts);
-	
+
 	FILEMAN->GetDirListingWithMultipleExtensions(
 	  sDir + sGroupDirName + "/", exts, arrayGroupBanners);
 
@@ -795,6 +803,7 @@ static LocalizedString LOADING_SONGS("SongManager", "Loading songs...");
 void
 SongManager::LoadStepManiaSongDir(std::string sDir, LoadingWindow* ld)
 {
+	Locator::getLogger()->info("LoadStepmaniaSongDir Starting: {}", sDir);
 	std::vector<std::string> songFolders;
 	GetDirListing(sDir + "*", songFolders, true);
 	auto songCount = 0;
@@ -852,7 +861,8 @@ SongManager::LoadStepManiaSongDir(std::string sDir, LoadingWindow* ld)
 				data->setUpdated(true);
 			}
 			auto loaded = 0;
-			SongPointerVector& index_entry = SONGMAN->m_mapSongGroupIndex[sGroupName];
+			SongPointerVector& index_entry =
+			  SONGMAN->m_mapSongGroupIndex[sGroupName];
 			const auto& group_base_name = sGroupName;
 			for (auto& sSongDirName : arraySongDirs) {
 				auto hur = make_lower(sSongDirName + "/");
@@ -879,9 +889,9 @@ SongManager::LoadStepManiaSongDir(std::string sDir, LoadingWindow* ld)
 			if (loaded == 0) {
 				continue;
 			}
-			Locator::getLogger()->trace("Loaded {} songs from \"{}\"",
-										loaded,
-										(sDir + sGroupName).c_str());
+			Locator::getLogger()->info("Loaded {} songs from \"{}\"",
+									   loaded,
+									   (sDir + sGroupName).c_str());
 			{
 				std::lock_guard<std::mutex> lk(diskLoadGroupMutex);
 				SONGMAN->AddGroup(sDir, sGroupName);
@@ -902,6 +912,14 @@ SongManager::LoadStepManiaSongDir(std::string sDir, LoadingWindow* ld)
 	}
 
 	if (!workload.empty()) {
+		const int THREADS =
+		  PREFSMAN->ThreadsToUse <= 0 ? std::thread::hardware_concurrency()
+		  : PREFSMAN->ThreadsToUse <
+			  static_cast<int>(std::thread::hardware_concurrency())
+			? PREFSMAN->ThreadsToUse
+			: static_cast<int>(std::thread::hardware_concurrency());
+		Locator::getLogger()->info(
+		  "LoadStepmaniaSongDir Starting {} Threads for Dir {}", THREADS, sDir);
 		parallelExecution<Group>(
 		  workload,
 		  onUpdate,
@@ -913,6 +931,7 @@ SongManager::LoadStepManiaSongDir(std::string sDir, LoadingWindow* ld)
 	if (ld != nullptr) {
 		ld->SetIndeterminate(true);
 	}
+	Locator::getLogger()->info("LoadStepmaniaSongDir Finished: {}", sDir);
 }
 
 void
@@ -1282,6 +1301,36 @@ makePlaylist(const std::string& answer)
 		PROFILEMAN->SaveProfile(PLAYER_1);
 	}
 }
+
+bool
+renamePlaylist(const std::string& old, const std::string& answer)
+{
+	Playlist pl;
+	pl.name = answer;
+	auto& pls = SONGMAN->GetPlaylists();
+	// cant rename nonexistent
+	// cant duplicate playlist
+	if (pls.count(old) == 0 || pls.count(answer) == 1)
+		return false;
+
+	if (!pl.name.empty() && pls.count(pl.name) == 0) {
+		auto& oldpl = pls.at(old);
+		pl.chartlist = oldpl.chartlist;
+		pl.courseruns = oldpl.courseruns;
+
+		SONGMAN->GetPlaylists().emplace(pl.name, pl);
+		SONGMAN->activeplaylist = pl.name;
+		SONGMAN->DeletePlaylist(old);
+
+		MESSAGEMAN->Broadcast("DisplayAll");
+		PROFILEMAN->SaveProfile(PLAYER_1);
+
+		return true;
+	} else {
+		return false;
+	}
+}
+
 static const string calctest_XML = "CalcTestList.xml";
 
 auto
@@ -1323,7 +1372,7 @@ SongManager::LoadCalcTestNode()
 	std::unique_ptr<RageFileBasic> pFile(
 	  FILEMAN->Open(fn, RageFile::READ, iError));
 	if (pFile == nullptr) {
-		Locator::getLogger()->trace(
+		Locator::getLogger()->warn(
 		  "Error opening {}: {}", fn.c_str(), strerror(iError));
 		return;
 	}
@@ -1333,7 +1382,7 @@ SongManager::LoadCalcTestNode()
 		return;
 	}
 
-	Locator::getLogger()->trace("Loading the Calc Test node.");
+	Locator::getLogger()->info("Loading the Calc Test node.");
 
 	FOREACH_CONST_Child(&xml, chartlist) // "For Each Skillset
 	{
@@ -1382,7 +1431,7 @@ SongManager::LoadCalcTestNode()
 auto
 SongManager::SaveCalcTestCreateNode() const -> XNode*
 {
-	Locator::getLogger()->trace("Saving the Calc Test node.");
+	Locator::getLogger()->debug("Saving the Calc Test node.");
 
 	auto* calctestlists = new XNode("CalcTest");
 	for (const auto& i : testChartList) {
@@ -1557,15 +1606,24 @@ class LunaSongManager : public Luna<SongManager>
 			pls.emplace(pl.name, pl);
 			p->activeplaylist = pl.name;
 
-			 // message for behavior consistency, not necessary
+			// message for behavior consistency, not necessary
 			MESSAGEMAN->Broadcast("DisplayAll");
 
 			lua_pushboolean(L, true);
-		}
-		else {
+		} else {
 			lua_pushboolean(L, false);
 		}
-		
+
+		return 1;
+	}
+
+	static auto RenamePlaylistNoDialog(T* p, lua_State* L) -> int
+	{
+		auto old = SArg(1);
+		auto newname = SArg(2);
+
+		lua_pushboolean(L, renamePlaylist(old, newname));
+
 		return 1;
 	}
 
@@ -1612,6 +1670,7 @@ class LunaSongManager : public Luna<SongManager>
 		ADD_METHOD(SetActivePlaylist);
 		ADD_METHOD(NewPlaylist);
 		ADD_METHOD(NewPlaylistNoDialog);
+		ADD_METHOD(RenamePlaylistNoDialog);
 		ADD_METHOD(GetPlaylists);
 		ADD_METHOD(DeletePlaylist);
 	}

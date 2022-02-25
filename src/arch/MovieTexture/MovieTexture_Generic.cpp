@@ -23,7 +23,8 @@ MovieTexture_Generic::MovieTexture_Generic(const RageTextureID& ID,
 										   MovieDecoder* pDecoder)
   : RageMovieTexture(ID)
 {
-	Locator::getLogger()->trace("MovieTexture_Generic::MovieTexture_Generic({})", ID.filename.c_str());
+	Locator::getLogger()->trace(
+	  "MovieTexture_Generic::MovieTexture_Generic({})", ID.filename.c_str());
 
 	m_pDecoder = pDecoder;
 
@@ -66,13 +67,17 @@ MovieTexture_Generic::Init()
 	m_ImageWaiting = FRAME_DECODED;
 
 	Locator::getLogger()->trace("Resolution: {}x{} ({}x{}, {}x{})",
-			   m_iSourceWidth, m_iSourceHeight,
-			   m_iImageWidth, m_iImageHeight,
-			   m_iTextureWidth, m_iTextureHeight);
+								m_iSourceWidth,
+								m_iSourceHeight,
+								m_iImageWidth,
+								m_iImageHeight,
+								m_iTextureWidth,
+								m_iTextureHeight);
 
 	UpdateFrame();
 
-	Locator::getLogger()->trace("Generic initialization completed. No errors found.");
+	Locator::getLogger()->trace(
+	  "Generic initialization completed. No errors found.");
 
 	return std::string();
 }
@@ -329,7 +334,9 @@ MovieTexture_Generic::DecodeFrame()
 	do {
 		if (m_bWantRewind) {
 			if (bTriedRewind) {
-				Locator::getLogger()->trace("File \"{}\" looped more than once in one frame", GetID().filename.c_str());
+				Locator::getLogger()->trace(
+				  "File \"{}\" looped more than once in one frame",
+				  GetID().filename.c_str());
 				return false;
 			}
 			m_bWantRewind = false;
@@ -362,7 +369,8 @@ MovieTexture_Generic::DecodeFrame()
 			if (!m_bLoop)
 				return false;
 
-			Locator::getLogger()->trace("File \"{}\" looping", GetID().filename.c_str());
+			Locator::getLogger()->trace("File \"{}\" looping",
+										GetID().filename.c_str());
 			m_bWantRewind = true;
 			continue;
 		}
@@ -416,8 +424,11 @@ MovieTexture_Generic::CheckFrameTime()
 	const float FrameSkipThreshold = 0.5f;
 
 	if (-fOffset >= FrameSkipThreshold && !m_bFrameSkipMode) {
-		Locator::getLogger()->trace("({}) Time is {}, and the movie is at {}.  Entering frame skip mode.",
-		  GetID().filename.c_str(), m_fClock, m_pDecoder->GetTimestamp());
+		Locator::getLogger()->trace(
+		  "({}) Time is {}, and the movie is at {}.  Entering frame skip mode.",
+		  GetID().filename.c_str(),
+		  m_fClock,
+		  m_pDecoder->GetTimestamp());
 		m_bFrameSkipMode = true;
 	}
 
@@ -452,7 +463,7 @@ MovieTexture_Generic::DecodeSeconds(float fSeconds)
 		return;
 	}
 
-    Locator::getLogger()->trace("MovieTexture_Generic::Update looping");
+	Locator::getLogger()->trace("MovieTexture_Generic::Update looping");
 }
 
 void
@@ -519,7 +530,9 @@ MovieTexture_Generic::SetPosition(float fSeconds)
 	 * yet.  I don't think we ever actually seek except to 0 right now,
 	 * anyway. XXX */
 	if (fSeconds != 0) {
-		Locator::getLogger()->warn("MovieTexture_Generic::SetPosition({}): non-0 seeking unsupported; ignored", fSeconds);
+		Locator::getLogger()->warn("MovieTexture_Generic::SetPosition({}): "
+								   "non-0 seeking unsupported; ignored",
+								   fSeconds);
 		return;
 	}
 

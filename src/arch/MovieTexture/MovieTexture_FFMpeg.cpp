@@ -481,8 +481,8 @@ MovieDecoder_FFMpeg::Open(const std::string& sFile)
 	if (!sError.empty())
 		return ssprintf("AVCodec (%s): %s", sFile.c_str(), sError.c_str());
 
-	Locator::getLogger()->trace("Bitrate: {}", m_pStream->codec->bit_rate);
-	Locator::getLogger()->trace(
+	Locator::getLogger()->debug("Bitrate: {}", m_pStream->codec->bit_rate);
+	Locator::getLogger()->debug(
 	  "Codec pixel format: {}",
 	  avcodec::av_get_pix_fmt_name(m_pStream->codec->pix_fmt));
 

@@ -24,7 +24,7 @@ RageSoundDriver::Create(const std::string& drivers)
 				  istring(drivers_to_try[to_try].c_str())) ==
 				m_pDriverList.m_pRegistrees->end()) {
 				Locator::getLogger()->warn("Removed unusable sound driver {}",
-						  drivers_to_try[to_try].c_str());
+										   drivers_to_try[to_try].c_str());
 				drivers_to_try.erase(drivers_to_try.begin() + to_try);
 				had_to_erase = true;
 			} else {
@@ -43,7 +43,8 @@ RageSoundDriver::Create(const std::string& drivers)
 	{
 		RageDriver* pDriver = m_pDriverList.Create(*Driver);
 		if (pDriver == NULL) {
-			Locator::getLogger()->trace("Unknown sound driver: {}", Driver->c_str());
+			Locator::getLogger()->info("Unknown sound driver: {}",
+									   Driver->c_str());
 			continue;
 		}
 
@@ -52,11 +53,11 @@ RageSoundDriver::Create(const std::string& drivers)
 
 		const std::string sError = pRet->Init();
 		if (sError.empty()) {
-			if (PREFSMAN->m_verbose_log > 1)
-				Locator::getLogger()->info("Sound driver: {}", Driver->c_str());
+			Locator::getLogger()->info("Sound driver: {}", Driver->c_str());
 			return pRet;
 		}
-		Locator::getLogger()->info("Couldn't load driver {}: {}", Driver->c_str(), sError.c_str());
+		Locator::getLogger()->info(
+		  "Couldn't load driver {}: {}", Driver->c_str(), sError.c_str());
 		SAFE_DELETE(pRet);
 	}
 	return NULL;

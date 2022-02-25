@@ -112,8 +112,8 @@ NoteField::CacheNoteSkin(const std::string& sNoteSkin_)
 
 	LockNoteSkin l(sNoteSkin_);
 
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->trace("NoteField::CacheNoteSkin: cache {}", sNoteSkin_.c_str());
+	Locator::getLogger()->debug("NoteField::CacheNoteSkin: cache {}",
+								sNoteSkin_.c_str());
 	auto* nd = new NoteDisplayCols(
 	  GAMESTATE->GetCurrentStyle(m_pPlayerState->m_PlayerNumber)
 		->m_iColsPerPlayer);
@@ -132,7 +132,8 @@ NoteField::CacheNoteSkin(const std::string& sNoteSkin_)
 void
 NoteField::UncacheNoteSkin(const std::string& sNoteSkin_)
 {
-	Locator::getLogger()->trace("NoteField::CacheNoteSkin: release {}", sNoteSkin_.c_str());
+	Locator::getLogger()->trace("NoteField::CacheNoteSkin: release {}",
+								sNoteSkin_.c_str());
 	ASSERT_M(m_NoteDisplays.find(sNoteSkin_) != m_NoteDisplays.end(),
 			 sNoteSkin_);
 	delete m_NoteDisplays[sNoteSkin_];
@@ -181,7 +182,7 @@ NoteField::CacheAllUsedNoteSkins()
 	auto it = m_NoteDisplays.find(sCurrentNoteSkinLower);
 	ASSERT_M(it != m_NoteDisplays.end(), sCurrentNoteSkinLower);
 	m_pCurDisplay = it->second;
-	
+
 	m_pDisplays = it->second;
 
 	// I don't think this is needed?
@@ -252,8 +253,9 @@ NoteField::ensure_note_displays_have_skin()
 	auto sNoteSkinLower =
 	  m_pPlayerState->m_PlayerOptions.GetCurrent().m_sNoteSkin;
 
-	// Guarantee a display is loaded if the selected Noteskin seems (doubly) empty
-	// if this does get entered, the visible Noteskin changes if not already changing
+	// Guarantee a display is loaded if the selected Noteskin seems (doubly)
+	// empty if this does get entered, the visible Noteskin changes if not
+	// already changing
 	if (sNoteSkinLower.empty()) {
 		sNoteSkinLower = make_lower(
 		  m_pPlayerState->m_PlayerOptions.GetPreferred().m_sNoteSkin);
@@ -265,7 +267,7 @@ NoteField::ensure_note_displays_have_skin()
 		// force this to work whether you like it or not
 		if (!NOTESKIN->DoesNoteSkinExist(sNoteSkinLower))
 			sNoteSkinLower = make_lower(NOTESKIN->GetFirstWorkingNoteSkin());
-		
+
 		CacheNoteSkin(sNoteSkinLower);
 	}
 
@@ -825,6 +827,17 @@ NoteField::DrawPrimitives()
 	cur->m_ReceptorArrowRow.DrawOverlay();
 
 	m_sprCover->Draw();
+
+	// there are always 2 true children of the NoteField
+	// both of those are the Cover and Board
+	// but through ActorFrame methods, more children can be added
+	// draw them here
+	if (m_SubActors.size() > 2) {
+		for (auto& sub : m_SubActors) {
+			if (sub != m_sprCover && sub != m_sprBoard)
+				sub->Draw();
+		}
+	}
 }
 
 void

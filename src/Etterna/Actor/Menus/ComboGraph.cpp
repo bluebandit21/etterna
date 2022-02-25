@@ -80,7 +80,8 @@ ComboGraph::Set(const StageStats& s, const PlayerStageStats& pss)
 }
 
 void
-ComboGraph::SetWithoutStageStats(const PlayerStageStats& pss, const float fLastSecond)
+ComboGraph::SetWithoutStageStats(const PlayerStageStats& pss,
+								 const float fLastSecond)
 {
 	const float fFirstSecond = 0;
 
@@ -102,12 +103,11 @@ ComboGraph::SetWithoutStageStats(const PlayerStageStats& pss, const float fLastS
 
 		const bool bIsMax = (combo.GetStageCnt() == iMaxComboSize);
 
-		if (PREFSMAN->m_verbose_log > 1)
-			Locator::getLogger()->trace("combo {} is {}+{} of {}",
-										i,
-										combo.m_fStartSecond,
-										combo.m_fSizeSeconds,
-										fLastSecond);
+		Locator::getLogger()->trace("combo {} is {}+{} of {}",
+									i,
+									combo.m_fStartSecond,
+									combo.m_fSizeSeconds,
+									fLastSecond);
 		Actor* pSprite = bIsMax ? m_pMaxCombo->Copy() : m_pNormalCombo->Copy();
 
 		const float fStart =
@@ -181,8 +181,7 @@ class LunaComboGraph : public Luna<ComboGraph>
 	static int SetWithoutStageStats(T* p, lua_State* L)
 	{
 		const float lastsecond = FArg(2);
-		auto* pPlayerStageStats =
-		  Luna<PlayerStageStats>::check(L, 1);
+		auto* pPlayerStageStats = Luna<PlayerStageStats>::check(L, 1);
 		p->SetWithoutStageStats(*pPlayerStageStats, lastsecond);
 		COMMON_RETURN_SELF;
 	}

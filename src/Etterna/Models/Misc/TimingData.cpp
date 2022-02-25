@@ -534,8 +534,8 @@ void
 TimingData::AddSegment(const TimingSegment* seg)
 {
 #ifdef WITH_LOGGING_TIMING_DATA
-	Locator::getLogger()->trace("AddSegment({})",
-			   TimingSegmentTypeToString(seg->GetType()).c_str());
+	Locator::getLogger()->trace(
+	  "AddSegment({})", TimingSegmentTypeToString(seg->GetType()).c_str());
 	seg->DebugPrint();
 #endif
 
@@ -735,7 +735,7 @@ TimingData::GetBeatInternal(GetBeatStarts& start,
 							GetBeatArgs& args,
 							unsigned int max_segment) const
 {
-	const auto *segs = m_avpTimingSegments;
+	const auto* segs = m_avpTimingSegments;
 	const auto& bpms = segs[SEGMENT_BPM];
 	const auto& warps = segs[SEGMENT_WARP];
 	const auto& stops = segs[SEGMENT_STOP];
@@ -848,7 +848,7 @@ TimingData::GetElapsedTimeInternal(GetBeatStarts& start,
 								   float beat,
 								   unsigned int max_segment) const
 {
-	const auto *segs = m_avpTimingSegments;
+	const auto* segs = m_avpTimingSegments;
 	const auto& bpms = segs[SEGMENT_BPM];
 	const auto& warps = segs[SEGMENT_WARP];
 	const auto& stops = segs[SEGMENT_STOP];
@@ -969,7 +969,8 @@ TimingData::ScaleRegion(float fScale,
 	ASSERT(iStartRow < iEndRow);
 
 	const auto length = iEndRow - iStartRow;
-	const int newLength = static_cast<int>(std::lround(fScale * static_cast<float>(length)));
+	const int newLength =
+	  static_cast<int>(std::lround(fScale * static_cast<float>(length)));
 
 	FOREACH_TimingSegmentType(tst) for (auto& j : m_avpTimingSegments[tst])
 	  j->Scale(iStartRow, length, newLength);
@@ -1035,8 +1036,8 @@ TimingData::DeleteRows(int iStartRow, int iRowsToDelete)
 			tsEnd->GetRow() < iStartRow + iRowsToDelete) {
 			// The iRowsToDelete will eventually be subtracted out
 			Locator::getLogger()->trace("Segment at row {} shifted to {}",
-					   tsEnd->GetRow(),
-					   iStartRow + iRowsToDelete);
+										tsEnd->GetRow(),
+										iStartRow + iRowsToDelete);
 			tsEnd->SetRow(iStartRow + iRowsToDelete);
 		}
 
@@ -1077,7 +1078,8 @@ TimingData::GetDisplayedSpeedPercent(float fBeat, float fMusicSeconds) const
 	const auto& speeds = GetTimingSegments(SEGMENT_SPEED);
 	if (speeds.empty()) {
 #ifdef DEBUG
-		Locator::getLogger()->trace("No speed segments found: using default value.");
+		Locator::getLogger()->trace(
+		  "No speed segments found: using default value.");
 #endif
 		return 1.0f;
 	}
@@ -1086,7 +1088,8 @@ TimingData::GetDisplayedSpeedPercent(float fBeat, float fMusicSeconds) const
 
 	if (index < 0) {
 #ifdef DEBUG
-		Locator::getLogger()->trace("Speed segment negative index: using default value");
+		Locator::getLogger()->trace(
+		  "Speed segment negative index: using default value");
 #endif
 		return 1.0f;
 	}
@@ -1137,7 +1140,8 @@ TimingData::TidyUpData(bool allowEmpty)
 	// If there are no BPM segments, provide a default.
 	auto* segs = m_avpTimingSegments;
 	if (segs[SEGMENT_BPM].empty()) {
-        Locator::getLogger()->info("Song file {} has no BPM segments, default provided.", m_sFile);
+		Locator::getLogger()->info(
+		  "Song file {} has no BPM segments, default provided.", m_sFile);
 		AddSegment(BPMSegment(0, 60));
 	}
 
@@ -1420,7 +1424,10 @@ TimingData::BuildAndGetEtaner(const std::vector<int>& nerv)
 			time_to_next_event = NoteRowToBeat(event_row - lastbpmrow) / bps;
 			const auto next_event_time = last_time + time_to_next_event;
 			if (bps <= 0)
-				Locator::getLogger()->warn("Found {} bps in file {} - Very likely to crash.", bps, m_sFile);
+				Locator::getLogger()->fatal(
+				  "Found {} bps in file {} - Very likely to crash.",
+				  bps,
+				  m_sFile);
 			while (idx < nerv.size() && nerv[idx] <= event_row) {
 				const auto perc = static_cast<float>(nerv[idx] - lastbpmrow) /
 								  static_cast<float>(event_row - lastbpmrow);

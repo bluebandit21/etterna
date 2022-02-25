@@ -110,7 +110,7 @@ GetTimingTags(std::vector<std::string>& lines,
 	// this here?
 #define WRITE_SEG_LOOP_OPEN(enum_type, seg_type, seg_name, to_func)            \
 	{                                                                          \
-		std::vector<TimingSegment*> const& segs =                                   \
+		std::vector<TimingSegment*> const& segs =                              \
 		  timing.GetTimingSegments(enum_type);                                 \
 		if (!segs.empty()) {                                                   \
 			writer.Init(seg_name);                                             \
@@ -468,8 +468,10 @@ NotesWriterETT::Write(std::string& sPath,
 
 	RageFile f;
 	if (!f.Open(sPath, flags)) {
-        Locator::getLogger()->info("Song file \"{}\" couldn't be opened for writing: {}",
-                                   sPath, f.GetError().c_str());
+		Locator::getLogger()->info(
+		  "Song file \"{}\" couldn't be opened for writing: {}",
+		  sPath,
+		  f.GetError().c_str());
 		return false;
 	}
 
@@ -488,13 +490,15 @@ NotesWriterETT::Write(std::string& sPath,
 	FOREACH_CONST(Steps*, vpStepsToSave, s)
 	{
 		auto pSteps = *s;
-		if (!pSteps->GetChartKey().empty()) { // Avoid writing cache tags for
+		if (!pSteps->GetChartKey().empty()) {
+			// Avoid writing cache tags for
 			// invalid chartkey files(empty
 			// steps) -Mina
 			auto sTag = GetETTNoteData(out, *pSteps);
 			f.PutLine(sTag);
 		} else {
-            //Locator::getLogger()->info("Not caching empty difficulty in file {}", sPath.c_str());
+			Locator::getLogger()->info(
+			  "Not caching empty difficulty in file {}", sPath.c_str());
 		}
 	}
 	if (f.Flush() == -1)

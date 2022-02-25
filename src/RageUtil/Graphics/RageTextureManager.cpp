@@ -51,9 +51,9 @@ RageTextureManager::~RageTextureManager()
 	for (auto& i : m_mapPathToTexture) {
 		auto pTexture = i.second;
 		if (pTexture->m_iRefCount)
-			Locator::getLogger()->trace("TEXTUREMAN LEAK: '{}', RefCount = {}.",
-					   i.first.filename.c_str(),
-					   pTexture->m_iRefCount);
+			Locator::getLogger()->warn("TEXTUREMAN LEAK: '{}', RefCount = {}.",
+									   i.first.filename.c_str(),
+									   pTexture->m_iRefCount);
 		SAFE_DELETE(pTexture);
 	}
 	m_textures_to_update.clear();
@@ -163,7 +163,8 @@ class RageTexture_Default : public RageTexture
 RageTexture*
 RageTextureManager::LoadTextureInternal(RageTextureID ID)
 {
-	Locator::getLogger()->trace("RageTextureManager::LoadTexture({}).", ID.filename.c_str());
+	Locator::getLogger()->trace("RageTextureManager::LoadTexture({}).",
+								ID.filename.c_str());
 
 	AdjustTextureID(ID);
 
@@ -287,8 +288,7 @@ void
 RageTextureManager::GarbageCollect(GCType type)
 {
 	// Search for old textures with refcount==0 to unload
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->trace("Performing texture garbage collection.");
+	Locator::getLogger()->debug("Performing texture garbage collection.");
 
 	for (auto i = m_mapPathToTexture.begin(); i != m_mapPathToTexture.end();) {
 		const auto j = i;
@@ -381,7 +381,7 @@ RageTextureManager::DiagnosticOutput() const
 {
 	const unsigned iCount =
 	  distance(m_mapPathToTexture.begin(), m_mapPathToTexture.end());
-	Locator::getLogger()->trace("{} textures loaded:", iCount);
+	Locator::getLogger()->info("{} textures loaded:", iCount);
 
 	auto iTotal = 0;
 	for (auto& i : m_mapPathToTexture) {
@@ -397,8 +397,9 @@ RageTextureManager::DiagnosticOutput() const
 		if (!sDiags.empty())
 			sStr += " " + sDiags;
 
-		Locator::getLogger()->trace(" {:<40s} {}", sStr.c_str(), Basename(ID.filename).c_str());
+		Locator::getLogger()->info(
+		  " {:<40s} {}", sStr.c_str(), Basename(ID.filename).c_str());
 		iTotal += pTex->GetTextureHeight() * pTex->GetTextureWidth();
 	}
-	Locator::getLogger()->trace("total {:3i} texels", iTotal);
+	Locator::getLogger()->info("total {:3i} texels", iTotal);
 }

@@ -115,7 +115,8 @@ CreateDirectories(const std::string& Path)
 		/* I can't reproduce this anymore.  If we get ENOENT, log it but keep
 		 * going. */
 		if (errno == ENOENT) {
-			Locator::getLogger()->warn("Couldn't create {}: {}", curpath.c_str(), strerror(errno));
+			Locator::getLogger()->warn(
+			  "Couldn't create {}: {}", curpath.c_str(), strerror(errno));
 			errno = EEXIST;
 		}
 #endif
@@ -124,14 +125,17 @@ CreateDirectories(const std::string& Path)
 			/* Make sure it's a directory. */
 			struct stat st;
 			if (DoStat(curpath.c_str(), &st) != -1 && !(st.st_mode & S_IFDIR)) {
-				Locator::getLogger()->warn("Couldn't create {}: path exists and is not a directory", curpath.c_str());
+				Locator::getLogger()->warn(
+				  "Couldn't create {}: path exists and is not a directory",
+				  curpath.c_str());
 				return false;
 			}
 
 			continue; // we expect to see this error
 		}
 
-        Locator::getLogger()->warn("Couldn't create {}: {}", curpath.c_str(), strerror(errno));
+		Locator::getLogger()->warn(
+		  "Couldn't create {}: {}", curpath.c_str(), strerror(errno));
 		return false;
 	}
 
@@ -160,7 +164,7 @@ DirectFilenameDB::SetRoot(const std::string& root_)
 void
 DirectFilenameDB::CacheFile(const std::string& sPath)
 {
-	Locator::getLogger()->trace(std::string(root + sPath).c_str());
+	Locator::getLogger()->trace("{}", std::string(root + sPath).c_str());
 	std::string sDir = Dirname(sPath);
 	FileSet* pFileSet = GetFileSet(sDir, false);
 	if (pFileSet == nullptr) {
@@ -194,7 +198,8 @@ DirectFilenameDB::CacheFile(const std::string& sPath)
 		int iError = errno;
 		// If it's a broken symlink, ignore it.  Otherwise, warn.
 		// Huh?
-		Locator::getLogger()->warn("File '{}' is gone! ({})", sPath.c_str(), strerror(iError));
+		Locator::getLogger()->warn(
+		  "File '{}' is gone! ({})", sPath.c_str(), strerror(iError));
 	} else {
 		f.dir = (st.st_mode & S_IFDIR);
 		f.size = (int)st.st_size;
@@ -272,8 +277,11 @@ DirectFilenameDB::PopulateFileSet(FileSet& fs, const std::string& path)
 				continue;
 
 			/* Huh? */
-			Locator::getLogger()->warn("Got file '{}' in '{}' from list, but can't stat? ({})",
-					   pEnt->d_name, sPath.c_str(), strerror(iError));
+			Locator::getLogger()->warn(
+			  "Got file '{}' in '{}' from list, but can't stat? ({})",
+			  pEnt->d_name,
+			  sPath.c_str(),
+			  strerror(iError));
 			continue;
 		}
 

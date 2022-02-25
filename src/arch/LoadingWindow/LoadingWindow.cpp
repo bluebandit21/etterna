@@ -58,15 +58,15 @@ LoadingWindow::Create()
 
 		std::string sError = ret->Init();
 		if (sError != "") {
-            Locator::getLogger()->info("Couldn't load driver {}: {}",
-					  DriversToTry[i].c_str(), sError.c_str());
+			Locator::getLogger()->info("Couldn't load driver {}: {}",
+									   DriversToTry[i].c_str(),
+									   sError.c_str());
 			SAFE_DELETE(ret);
 		}
 	}
 
 	if (ret) {
-		if (PREFSMAN->m_verbose_log > 1)
-            Locator::getLogger()->info("Loading window: {}", Driver);
+		Locator::getLogger()->info("Loading window: {}", Driver);
 
 		ret->SetIndeterminate(true);
 	}

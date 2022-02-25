@@ -234,7 +234,8 @@ RageSoundDriver::DecodeThread()
 
 			Sound* pSound = &m_Sound;
 
-			//Locator::getLogger()->trace("Processing the sound while buffers are available.");
+			// Locator::getLogger()->trace("Processing the sound while buffers
+			// are available.");
 			while (pSound->m_Buffer.num_writable()) {
 				int iWrote = GetDataForSound(*pSound);
 				if (iWrote == RageSoundReader::WOULD_BLOCK)
@@ -326,9 +327,8 @@ RageSoundDriver::Update()
 		/* Lockless: only Mix() can write to underruns. */
 		int current_underruns = underruns;
 		if (current_underruns > logged_underruns) {
-			if (PREFSMAN->m_verbose_log > 1) {
-				Locator::getLogger()->trace("Mixing underruns: {}", current_underruns - logged_underruns);
-			}
+			Locator::getLogger()->trace("Mixing underruns: {}",
+										current_underruns - logged_underruns);
 			logged_underruns = current_underruns;
 
 			/* Don't log again for at least a second, or we'll burst output
@@ -404,16 +404,16 @@ RageSoundDriver::StopMixing(RageSoundBase* pSound)
 			break;
 	if (i == ARRAYLEN(m_Sounds)) {
 		m_Mutex.Unlock();
-		if (PREFSMAN->m_verbose_log > 1)
-			Locator::getLogger()->trace("not stopping a sound because it's not playing");
+		Locator::getLogger()->trace(
+		  "not stopping a sound because it's not playing");
 		return;
 	}
 
 	/* If we're already in STOPPED, there's nothing to do. */
 	if (m_Sounds[i].m_State == Sound::STOPPED) {
 		m_Mutex.Unlock();
-		if (PREFSMAN->m_verbose_log > 1)
-			Locator::getLogger()->trace("not stopping a sound because it's already in STOPPED");
+		Locator::getLogger()->trace(
+		  "not stopping a sound because it's already in STOPPED");
 		return;
 	}
 
@@ -452,7 +452,8 @@ RageSoundDriver::PauseMixing(RageSoundBase* pSound, bool bStop)
 	 * so externally it looks and acts like PLAYING.) */
 	if (i == ARRAYLEN(m_Sounds) || (m_Sounds[i].m_State != Sound::PLAYING &&
 									m_Sounds[i].m_State != Sound::STOPPING)) {
-		Locator::getLogger()->trace("not pausing a sound because it's not playing");
+		Locator::getLogger()->trace(
+		  "not pausing a sound because it's not playing");
 		return false;
 	}
 
@@ -493,17 +494,14 @@ RageSoundDriver::~RageSoundDriver()
 	/* Signal the decoding thread to quit. */
 	if (m_DecodeThread.IsCreated()) {
 		m_bShutdownDecodeThread = true;
-		if (PREFSMAN->m_verbose_log > 1)
-			Locator::getLogger()->trace("Shutting down decode thread ...");
+		Locator::getLogger()->info("Shutting down decode thread ...");
 		m_DecodeThread.Wait();
-		if (PREFSMAN->m_verbose_log > 1)
-			Locator::getLogger()->trace("Decode thread shut down.");
+		Locator::getLogger()->info("Decode thread shut down.");
 
-		if (PREFSMAN->m_verbose_log > 1)
-			Locator::getLogger()->info("Mixing {} ahead in {} Mix() calls",
-					  static_cast<float>(g_iTotalAhead) /
-						std::max(g_iTotalAheadCount, 1),
-					  g_iTotalAheadCount);
+		Locator::getLogger()->debug("Mixing {} ahead in {} Mix() calls",
+									static_cast<float>(g_iTotalAhead) /
+									  std::max(g_iTotalAheadCount, 1),
+									g_iTotalAheadCount);
 	}
 }
 
@@ -558,7 +556,8 @@ RageSoundDriver::GetHardwareFrame(RageTimer* pTimestamp) const
 		static bool bLogged = false;
 		if (!bLogged) {
 			bLogged = true;
-			Locator::getLogger()->warn("RageSoundDriver::GetHardwareFrame: too many tries");
+			Locator::getLogger()->warn(
+			  "RageSoundDriver::GetHardwareFrame: too many tries");
 		}
 	}
 

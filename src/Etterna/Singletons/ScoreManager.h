@@ -176,6 +176,9 @@ class ScoreManager
 	  const std::string& profileID =
 		PROFILEMAN->GetProfile(PLAYER_1)->m_sProfileID,
 	  bool getSSRs = false);
+	std::map<DateTime, std::vector<float>> GetPlayerRatingOverTime(
+	  const std::string& profileID =
+		PROFILEMAN->GetProfile(PLAYER_1)->m_sProfileID);
 	void SortTopSSRPtrsForGame(
 	  Skillset ss,
 	  const string& profileID = PROFILEMAN->GetProfile(PLAYER_1)->m_sProfileID);
@@ -203,7 +206,8 @@ class ScoreManager
 	  const std::string& profileID =
 		PROFILEMAN->GetProfile(PLAYER_1)->m_sProfileID) const -> bool
 	{
-		return pscores.count(profileID) == 1 && pscores.at(profileID).count(ck) == 1;
+		return pscores.count(profileID) == 1 &&
+			   pscores.at(profileID).count(ck) == 1;
 	}
 	[[nodiscard]] auto HasAnyScores() const -> bool
 	{
@@ -261,10 +265,12 @@ class ScoreManager
 
 	// return all skillsets ordered by number of plays
 	std::vector<Skillset> GetTopPlayedSkillsets(
-	  const std::string& profileID = PROFILEMAN->GetProfile(PLAYER_1)->m_sProfileID);
+	  const std::string& profileID =
+		PROFILEMAN->GetProfile(PLAYER_1)->m_sProfileID);
 
 	std::vector<int> GetPlaycountPerSkillset(
-	  const std::string& profileID = PROFILEMAN->GetProfile(PLAYER_1)->m_sProfileID);
+	  const std::string& profileID =
+		PROFILEMAN->GetProfile(PLAYER_1)->m_sProfileID);
 
 	void SetAllTopScores(const std::string& profileID =
 						   PROFILEMAN->GetProfile(PLAYER_1)->m_sProfileID);
@@ -291,10 +297,7 @@ class ScoreManager
 	// probably can avoid copying strings if we're sure it's safe
 	std::set<HighScore*> rescores;
 
-	auto GetNumScoresThisSession() -> int
-	{
-		return scoresThisSession.size();
-	}
+	auto GetNumScoresThisSession() -> int { return scoresThisSession.size(); }
 	auto GetScoresThisSession() -> std::vector<HighScore*>
 	{
 		return scoresThisSession;
@@ -320,8 +323,8 @@ class ScoreManager
 	// obvious)
 	std::unordered_map<std::string, HighScore*> ScoresByKey;
 
-	// a more thought out (not really) replacement for STATSMAN played stage stats
-	// note: scoresThisSession is NOT meant to reset on profile load
+	// a more thought out (not really) replacement for STATSMAN played stage
+	// stats note: scoresThisSession is NOT meant to reset on profile load
 	// (design choice)
 	std::vector<HighScore*> scoresThisSession;
 };

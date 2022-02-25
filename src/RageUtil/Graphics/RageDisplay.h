@@ -37,11 +37,13 @@ class RageCompiledGeometry
 
 	void Set(const std::vector<msMesh>& vMeshes, bool bNeedsNormals);
 
-	virtual void Allocate(const std::vector<msMesh>& vMeshes) = 0; // allocate space
-	virtual void Change(const std::vector<msMesh>& vMeshes) = 0; // new data must be
-															// the same size as
-															// was passed to
-															// Set()
+	virtual void Allocate(
+	  const std::vector<msMesh>& vMeshes) = 0; // allocate space
+	virtual void Change(
+	  const std::vector<msMesh>& vMeshes) = 0; // new data must be
+											   // the same size as
+											   // was passed to
+											   // Set()
 	virtual void Draw(int iMeshIndex) const = 0;
 
   protected:
@@ -278,6 +280,9 @@ class RageDisplay
 	  -> const ActualVideoModeParams* = 0;
 	auto IsWindowed() -> bool { return (*GetActualVideoModeParams()).windowed; }
 
+	auto GetFrameTimingAdjustment(std::chrono::steady_clock::time_point now)
+	  -> float;
+
 	virtual void SetBlendMode(BlendMode mode) = 0;
 
 	virtual auto SupportsTextureFormat(RagePixelFormat pixfmt,
@@ -338,7 +343,7 @@ class RageDisplay
 	 */
 	virtual auto CreateRenderTarget(const RenderTargetParam& /*unused*/,
 									int& /* iTextureWidthOut */,
-									int &
+									int&
 									/* iTextureHeightOut */) -> intptr_t
 	{
 		return 0;

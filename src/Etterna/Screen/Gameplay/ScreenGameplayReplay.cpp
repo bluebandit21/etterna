@@ -95,8 +95,8 @@ ScreenGameplayReplay::Init()
 
 ScreenGameplayReplay::~ScreenGameplayReplay()
 {
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->trace("ScreenGameplayReplay::~ScreenGameplayReplay()");
+	Locator::getLogger()->debug(
+	  "ScreenGameplayReplay::~ScreenGameplayReplay()");
 
 	if (!GAMESTATE->m_bRestartedGameplay) {
 		GAMESTATE->m_pPlayerState->m_PlayerOptions.Init();
@@ -131,7 +131,8 @@ ScreenGameplayReplay::~ScreenGameplayReplay()
 		GAMESTATE->m_SongOptions.GetSong().m_fMusicRate = PlayerAI::oldRate;
 		GAMESTATE->m_SongOptions.GetStage().m_fMusicRate = PlayerAI::oldRate;
 	} else {
-		PlayerAI::SetScoreData();
+		PlayerAI::SetScoreData(
+		  PlayerAI::pScoreData, 0, nullptr, PlayerAI::pReplayTiming);
 	}
 }
 
@@ -139,17 +140,20 @@ void
 ScreenGameplayReplay::Update(const float fDeltaTime)
 {
 	if (GAMESTATE->m_pCurSong == nullptr) {
-		ScreenWithMenuElements::Update(fDeltaTime); // NOLINT(bugprone-parent-virtual-call)
+		ScreenWithMenuElements::Update(
+		  fDeltaTime); // NOLINT(bugprone-parent-virtual-call)
 		return;
 	}
 
-	UpdateSongPosition(fDeltaTime);
+	UpdateSongPosition();
 
 	if (m_bZeroDeltaOnNextUpdate) {
-		ScreenWithMenuElements::Update(0); // NOLINT(bugprone-parent-virtual-call)
+		ScreenWithMenuElements::Update(
+		  0); // NOLINT(bugprone-parent-virtual-call)
 		m_bZeroDeltaOnNextUpdate = false;
 	} else {
-		ScreenWithMenuElements::Update(fDeltaTime); // NOLINT(bugprone-parent-virtual-call)
+		ScreenWithMenuElements::Update(
+		  fDeltaTime); // NOLINT(bugprone-parent-virtual-call)
 	}
 
 	if (SCREENMAN->GetTopScreen() != this) {
@@ -228,9 +232,7 @@ ScreenGameplayReplay::Input(const InputEventPlus& input) -> bool
 				  input.type == IET_REPEAT) ||
 				 (input.DeviceI.device != DEVICE_KEYBOARD &&
 				  INPUTFILTER->GetSecsHeld(input.DeviceI) >= 1.0F))) {
-				if (PREFSMAN->m_verbose_log > 1) {
-					Locator::getLogger()->trace("Player {} went back", input.pn + 1);
-				}
+				Locator::getLogger()->info("Player {} went back", input.pn + 1);
 				BeginBackingOutFromGameplay();
 			} else if (PREFSMAN->m_bDelayedBack &&
 					   input.type == IET_FIRST_PRESS) {
@@ -274,7 +276,10 @@ ScreenGameplayReplay::SaveStats()
 	// Reload the notedata after finishing in case we truncated it
 	SetupNoteDataFromRow(GAMESTATE->m_pCurSteps, -1);
 	// Reload the replay data to make sure it is clean for calculations
-	PlayerAI::SetScoreData();
+	PlayerAI::SetScoreData(PlayerAI::pScoreData,
+						   0,
+						   nullptr,
+						   GAMESTATE->m_pCurSteps->GetTimingData());
 	PlayerAI::SetUpExactTapMap(PlayerAI::pReplayTiming);
 
 	ScreenGameplay::SaveStats();
@@ -283,7 +288,7 @@ ScreenGameplayReplay::SaveStats()
 void
 ScreenGameplayReplay::StageFinished(bool bBackedOut)
 {
-	Locator::getLogger()->trace("Finishing Stage");
+	Locator::getLogger()->info("Finishing Stage");
 	if (bBackedOut) {
 		GAMESTATE->CancelStage();
 		return;
@@ -299,7 +304,7 @@ ScreenGameplayReplay::StageFinished(bool bBackedOut)
 
 	STATSMAN->CalcAccumPlayedStageStats();
 	GAMESTATE->FinishStage();
-	Locator::getLogger()->trace("Done Finishing Stage");
+	Locator::getLogger()->info("Done Finishing Stage");
 }
 
 auto
@@ -356,7 +361,7 @@ ScreenGameplayReplay::SetRate(const float newRate) -> float
 
 	// misc info update
 	GAMESTATE->m_Position.m_fMusicSeconds = fSeconds;
-	UpdateSongPosition(0);
+	UpdateSongPosition();
 	MESSAGEMAN->Broadcast(
 	  "CurrentRateChanged"); // Tell the theme we changed the rate
 
@@ -567,7 +572,7 @@ class LunaScreenGameplayReplay : public Luna<ScreenGameplayReplay>
 		lua_pushnumber(L, p->SetRate(newrate));
 		return 1;
 	}
-	static auto TogglePause(T* p, lua_State * /*L*/) -> int
+	static auto TogglePause(T* p, lua_State* /*L*/) -> int
 	{
 		p->TogglePause();
 		return 0;
@@ -578,7 +583,7 @@ class LunaScreenGameplayReplay : public Luna<ScreenGameplayReplay>
 		p->m_fReplayBookmarkSeconds = position;
 		return 0;
 	}
-	static auto JumpToBookmark(T* p, lua_State * /*L*/) -> int
+	static auto JumpToBookmark(T* p, lua_State* /*L*/) -> int
 	{
 		if (GAMESTATE->GetPaused()) {
 			p->SetSongPosition(p->m_fReplayBookmarkSeconds);

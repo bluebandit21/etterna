@@ -25,10 +25,10 @@ REGISTER_ACTOR_CLASS(NoteFieldPreview);
 const Style*
 attemptToEnsureStyle(const PlayerState* ps)
 {
-	// without PlayerState, 
+	// without PlayerState,
 	if (ps == nullptr)
 		return nullptr;
-	
+
 	const auto* out = GAMESTATE->GetCurrentStyle(ps->m_PlayerNumber);
 	if (out == nullptr) {
 		GAMESTATE->SetCompatibleStylesForPlayers();
@@ -44,10 +44,10 @@ void
 NoteFieldPreview::LoadFromNode(const XNode* pNode)
 {
 	int iDrawBefore, iDrawAfter;
-	const auto b4success = pNode->GetAttrValue("DrawDistanceBeforeTargetsPixels",
-						iDrawBefore);
-	const auto afsuccess = pNode->GetAttrValue("DrawDistanceAfterTargetsPixels",
-						iDrawAfter);
+	const auto b4success =
+	  pNode->GetAttrValue("DrawDistanceBeforeTargetsPixels", iDrawBefore);
+	const auto afsuccess =
+	  pNode->GetAttrValue("DrawDistanceAfterTargetsPixels", iDrawAfter);
 
 	// fall back to gameplay metrics for draw distance
 	if (!b4success)
@@ -67,9 +67,10 @@ NoteFieldPreview::LoadFromNode(const XNode* pNode)
 	  THEME->GetMetricF("Player", "ReceptorArrowsYReverse");
 	ReceptorArrowsYStandard =
 	  THEME->GetMetricF("Player", "ReceptorArrowsYStandard");
-	
+
 	float reversePixels, noteFieldHeight;
-	const auto reverseSuccess = pNode->GetAttrValue("YReverseOffsetPixels", reversePixels);
+	const auto reverseSuccess =
+	  pNode->GetAttrValue("YReverseOffsetPixels", reversePixels);
 	if (reverseSuccess)
 		noteFieldHeight =
 		  std::clamp(reversePixels, 0.F, std::numeric_limits<float>::max());
@@ -88,8 +89,9 @@ NoteFieldPreview::LoadFromNode(const XNode* pNode)
 
 	const auto* style = attemptToEnsureStyle(m_pPlayerState);
 	if (style == nullptr) {
-		LuaHelpers::ReportScriptError("GetCurrentStyle was null when creating "
-									  "NoteFieldPreview. Report to developers.");
+		LuaHelpers::ReportScriptError(
+		  "GetCurrentStyle was null when creating "
+		  "NoteFieldPreview. Report to developers.");
 		return;
 	}
 
@@ -103,8 +105,17 @@ NoteFieldPreview::LoadFromNode(const XNode* pNode)
 	// (only happens when not loading into a 4k compatible Game)
 	if (p_dummyNoteData->GetNumTracks() != style->m_iColsPerPlayer)
 		p_dummyNoteData->SetNumTracks(style->m_iColsPerPlayer);
-	
+
 	Init(m_pPlayerState, noteFieldHeight, false);
+
+	// force update current player options
+	// (bad interim solution until we hand preview its own player options)
+	m_pPlayerState->m_PlayerOptions.GetCurrent() =
+	  m_pPlayerState->m_PlayerOptions.GetPreferred();
+	m_pPlayerState->m_PlayerOptions.GetStage() =
+	  m_pPlayerState->m_PlayerOptions.GetPreferred();
+	m_pPlayerState->m_PlayerOptions.GetSong() =
+	  m_pPlayerState->m_PlayerOptions.GetPreferred();
 
 	// If NoteData was loaded in InitCommand, this isn't necessary
 	// It would be null if not loaded in InitCommand
@@ -122,20 +133,20 @@ NoteFieldPreview::UpdateYReversePixels(float YReverseOffsetPixels)
 	// requires a style to be set
 	if (attemptToEnsureStyle(m_pPlayerState) == nullptr)
 		return;
-	
+
 	m_fYReverseOffsetPixels = YReverseOffsetPixels;
 	m_FieldRenderArgs.reverse_offset_pixels = YReverseOffsetPixels;
 	for (auto& ndisplay : m_NoteDisplays) {
 		if (ndisplay.second == nullptr)
 			continue;
-		
+
 		for (auto c = 0;
 			 c < GAMESTATE->GetCurrentStyle(m_pPlayerState->m_PlayerNumber)
 				   ->m_iColsPerPlayer;
 			 c++)
-				ndisplay.second->display[c].m_fYReverseOffsetPixels =
-				  YReverseOffsetPixels;
-		
+			ndisplay.second->display[c].m_fYReverseOffsetPixels =
+			  YReverseOffsetPixels;
+
 		ndisplay.second->m_ReceptorArrowRow.m_fYReverseOffsetPixels =
 		  YReverseOffsetPixels;
 		ndisplay.second->m_GhostArrowRow.m_fYReverseOffsetPixels =
@@ -159,8 +170,9 @@ NoteFieldPreview::LoadNoteData(NoteData* pNoteData)
 		  style->m_iColsPerPlayer);
 	}
 
-	// Running NoteSkin Recache will solve issues related to changing style as an end-all
-	// This can't be run on init: there will be no loaded ReceptorArrowRow displays (null)
+	// Running NoteSkin Recache will solve issues related to changing style as
+	// an end-all This can't be run on init: there will be no loaded
+	// ReceptorArrowRow displays (null)
 	if (loadedNoteDataAtLeastOnce &&
 		m_pCurDisplay->m_ReceptorArrowRow.GetRendererCount() !=
 		  pNoteData->GetNumTracks()) {
@@ -172,15 +184,17 @@ NoteFieldPreview::LoadNoteData(NoteData* pNoteData)
 		loadedNoteDataAtLeastOnce = true;
 
 	// Generate some cache data structure.
-	if (pNoteData != p_dummyNoteData && pNoteData != nullptr && !pNoteData->IsEmpty())
+	if (pNoteData != p_dummyNoteData && pNoteData != nullptr &&
+		!pNoteData->IsEmpty())
 		m_pPlayerState->ResetCacheInfo(/**pNoteData*/);
-	
+
 	Load(pNoteData,
 		 m_iDrawDistanceAfterTargetsPixels,
 		 m_iDrawDistanceBeforeTargetsPixels);
-	
+
 	// Let everything know the NoteField loaded new NoteData
-	// also pass the name of this Actor if we happen to have multiple (why would you)
+	// also pass the name of this Actor if we happen to have multiple (why would
+	// you)
 	Message m("LoadedNewPreviewNoteData");
 	m.SetParam("NoteField", m_sName);
 	MESSAGEMAN->Broadcast(m);
@@ -208,8 +222,8 @@ NoteFieldPreview::LoadNoteData(Steps* pSteps, bool bTransform)
 		*nd = ndo;
 	}
 
-	// Transform NoteData incoming (this being only here is because only lua uses it)
-	// (for now)
+	// Transform NoteData incoming (this being only here is because only lua
+	// uses it) (for now)
 	if (nd != nullptr && bTransform) {
 		auto* td = pSteps->GetTimingData();
 		NoteDataUtil::TransformNoteData(
@@ -218,11 +232,11 @@ NoteFieldPreview::LoadNoteData(Steps* pSteps, bool bTransform)
 		  GAMESTATE->m_pPlayerState->m_PlayerOptions.GetCurrent(),
 		  pSteps->m_StepsType);
 	}
-	
+
 	if (nd != p_NoteDataFromSteps && p_NoteDataFromSteps != nullptr)
 		delete p_NoteDataFromSteps;
 	p_NoteDataFromSteps = nd;
-	
+
 	LoadNoteData(nd);
 }
 
@@ -237,7 +251,8 @@ NoteFieldPreview::LoadDummyNoteData()
 }
 
 void
-NoteFieldPreview::UpdateDrawDistance(int aftertargetspixels, int beforetargetspixels)
+NoteFieldPreview::UpdateDrawDistance(int aftertargetspixels,
+									 int beforetargetspixels)
 {
 	// These numbers must remain outside of certain bounds
 	// negative only
@@ -246,7 +261,7 @@ NoteFieldPreview::UpdateDrawDistance(int aftertargetspixels, int beforetargetspi
 	// positive only
 	if (beforetargetspixels < 0)
 		beforetargetspixels = 0;
-	
+
 	m_iDrawDistanceBeforeTargetsPixels = beforetargetspixels;
 	m_iDrawDistanceAfterTargetsPixels = aftertargetspixels;
 }
@@ -275,7 +290,7 @@ NoteFieldPreview::ensure_note_displays_have_skin()
 			sNoteSkinLower = make_lower(NOTESKIN->GetFirstWorkingNoteSkin());
 
 		CacheNoteSkin(sNoteSkinLower);
-		
+
 		// if we already have a display loaded with the "correct" number of
 		// columns, don't change needlessly
 		if (m_pDisplays != nullptr &&
@@ -295,7 +310,7 @@ NoteFieldPreview::ensure_note_displays_have_skin()
 		  ssprintf("iterator != m_NoteDisplays.end() [sNoteSkinLower = %s]",
 				   sNoteSkinLower.c_str()));
 	}
-	
+
 	if (!skipDisplayChange)
 		m_pDisplays = it->second;
 }
@@ -341,7 +356,7 @@ NoteFieldPreview::DrawPrimitives()
 {
 	if (m_pCurDisplay == nullptr)
 		return;
-	
+
 	const auto original_y = GetY();
 	// Use the same logic of the PlayerNoteFieldPositioner here
 	// This will make the NoteField adapt to the PlayerState PlayerOptions
@@ -374,21 +389,22 @@ NoteFieldPreview::DrawPrimitives()
 
 			// emulate Player::PushPlayerMatrix
 			Player::PushPlayerMatrix(x, skew, center_y);
-			
+
 			if (tilt > 0) {
-				SetY(original_y + SCALE(tilt, 0.F, 1.F, 0.F, -45.F) * reverse_mult);
+				SetY(original_y +
+					 SCALE(tilt, 0.F, 1.F, 0.F, -45.F) * reverse_mult);
 				SetZoom(SCALE(mini, 0.F, 1.F, 1.F, 0.5F) *
 						SCALE(tilt, 0.F, 1.F, 1.F, 0.9F));
-			}
-			else {
-				SetY(original_y + SCALE(tilt, 0.F, -1.F, 0.F, -20.F) * reverse_mult);
+			} else {
+				SetY(original_y +
+					 SCALE(tilt, 0.F, -1.F, 0.F, -20.F) * reverse_mult);
 				SetZoom(SCALE(mini, 0.F, 1.F, 1.F, 0.5F) *
 						SCALE(tilt, 0.F, -1.F, 1.F, 0.9F));
 			}
 			SetRotationX(tilt_degrees);
 		}
 	}
-	
+
 	NoteField::DrawPrimitives();
 
 	// clean up the emulation of PlayerNoteFieldPositioner
@@ -404,22 +420,21 @@ NoteFieldPreview::DrawPrimitives()
 class LunaNoteFieldPreview : public Luna<NoteFieldPreview>
 {
   public:
-
 	static int UpdateDrawDistance(T* p, lua_State* L)
 	{
 		auto after = IArg(1);
 		auto before = IArg(2);
 
 		p->UpdateDrawDistance(after, before);
-		
-		COMMON_RETURN_SELF;	
+
+		COMMON_RETURN_SELF;
 	}
 	static int UpdateYReversePixels(T* p, lua_State* L)
 	{
 		auto i = FArg(1);
 
 		p->UpdateYReversePixels(i);
-		
+
 		COMMON_RETURN_SELF;
 	}
 	static int LoadNoteData(T* p, lua_State* L)
@@ -454,7 +469,7 @@ class LunaNoteFieldPreview : public Luna<NoteFieldPreview>
 		p->ResetConstantMini();
 		COMMON_RETURN_SELF;
 	}
-	
+
 	LunaNoteFieldPreview()
 	{
 		ADD_METHOD(UpdateDrawDistance);

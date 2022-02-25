@@ -222,7 +222,7 @@ RageSurfaceUtils::GetAverageRGB(const RageSurface* img, unsigned pixelIncrement)
 		// to allow pixelIncrement to offset the X position
 		if (x >= img->w)
 			x -= img->w;
-		
+
 		for (; x < img->w; x += pixelIncrement) {
 			const auto val = decodepixel(row, img->fmt.BytesPerPixel);
 			if (img->fmt.BitsPerPixel == 8) {
@@ -247,11 +247,14 @@ RageSurfaceUtils::GetAverageRGB(const RageSurface* img, unsigned pixelIncrement)
 			row += img->fmt.BytesPerPixel;
 		}
 	}
-	
+
 	if (pixelCount <= 0)
-		return RageColor(0,0,0,1.F);
-	
-	return RageColor(rt / pixelCount / 255.F, gt / pixelCount / 255.F, gt / pixelCount / 255.F, 1.F);
+		return RageColor(0, 0, 0, 1.F);
+
+	return RageColor(rt / pixelCount / 255.F,
+					 gt / pixelCount / 255.F,
+					 gt / pixelCount / 255.F,
+					 1.F);
 }
 
 // Local helper for FixHiddenAlpha.
@@ -955,7 +958,8 @@ RageSurfaceUtils::LoadSurface(const std::string& file)
 	 * created with a different version whose CreateSurface() behavior
 	 * was different. */
 	if (h.pitch != img->pitch) {
-		Locator::getLogger()->trace("Error loading \"{}\": expected pitch {}, got {} ({}bpp, {} width)",
+		Locator::getLogger()->error(
+		  "Error loading \"{}\": expected pitch {}, got {} ({}bpp, {} width)",
 		  file.c_str(),
 		  h.pitch,
 		  img->pitch,

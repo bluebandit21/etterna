@@ -32,10 +32,12 @@ EnumDevicesCallback(const DIDEVICEINSTANCE* pdidInstance, void* pContext)
 {
 	DIDevice device;
 
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->info("DInput: Enumerating device - Type: 0x%08X Instance Name: \"{}\" "
-		  "Product Name: \"{}\"",
-		  pdidInstance->dwDevType, pdidInstance->tszInstanceName, pdidInstance->tszProductName);
+	Locator::getLogger()->info(
+	  "DInput: Enumerating device - Type: {0:#x} Instance Name: \"{1}\" "
+	  "Product Name: \"{2}\"",
+	  pdidInstance->dwDevType,
+	  pdidInstance->tszInstanceName,
+	  pdidInstance->tszProductName);
 
 	switch (GET_DIDEVICE_TYPE(pdidInstance->dwDevType)) {
 		case DI8DEVTYPE_JOYSTICK:
@@ -96,10 +98,11 @@ CheckForDirectInputDebugMode()
 		  "emulation",
 		  iVal)) {
 		if (iVal & 0x8)
-			Locator::getLogger()->warn("DirectInput keyboard debug mode appears to be enabled. "
-					  "This reduces\n"
-					  "input timing accuracy significantly. Disabling this is "
-					  "strongly recommended.");
+			Locator::getLogger()->warn(
+			  "DirectInput keyboard debug mode appears to be enabled. "
+			  "This reduces\n"
+			  "input timing accuracy significantly. Disabling this is "
+			  "strongly recommended.");
 	}
 }
 
@@ -136,8 +139,7 @@ GetNumJoysticksSlow()
 
 InputHandler_DInput::InputHandler_DInput()
 {
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->trace("InputHandler_DInput::InputHandler_DInput()");
+	Locator::getLogger()->debug("InputHandler_DInput::InputHandler_DInput()");
 
 	CheckForDirectInputDebugMode();
 
@@ -154,8 +156,8 @@ InputHandler_DInput::InputHandler_DInput()
 		RageException::Throw(
 		  hr_ssprintf(hr, "InputHandler_DInput: DirectInputCreate").c_str());
 
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->trace("InputHandler_DInput: IDirectInput::EnumDevices(DIDEVTYPE_KEYBOARD)");
+	Locator::getLogger()->trace(
+	  "InputHandler_DInput: IDirectInput::EnumDevices(DIDEVTYPE_KEYBOARD)");
 	hr = g_dinput->EnumDevices(
 	  DI8DEVCLASS_KEYBOARD, EnumDevicesCallback, nullptr, DIEDFL_ATTACHEDONLY);
 	if (hr != DI_OK)
@@ -163,8 +165,8 @@ InputHandler_DInput::InputHandler_DInput()
 		  hr_ssprintf(hr, "InputHandler_DInput: IDirectInput::EnumDevices")
 			.c_str());
 
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->trace("InputHandler_DInput: IDirectInput::EnumDevices(DIDEVTYPE_JOYSTICK)");
+	Locator::getLogger()->trace(
+	  "InputHandler_DInput: IDirectInput::EnumDevices(DIDEVTYPE_JOYSTICK)");
 	hr = g_dinput->EnumDevices(
 	  DI8DEVCLASS_GAMECTRL, EnumDevicesCallback, nullptr, DIEDFL_ATTACHEDONLY);
 	if (hr != DI_OK)
@@ -173,8 +175,8 @@ InputHandler_DInput::InputHandler_DInput()
 			.c_str());
 
 	// mouse
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->trace("InputHandler_DInput: IDirectInput::EnumDevices(DIDEVTYPE_MOUSE)");
+	Locator::getLogger()->trace(
+	  "InputHandler_DInput: IDirectInput::EnumDevices(DIDEVTYPE_MOUSE)");
 	hr = g_dinput->EnumDevices(
 	  DI8DEVCLASS_POINTER, EnumDevicesCallback, nullptr, DIEDFL_ATTACHEDONLY);
 	if (hr != DI_OK)
@@ -191,13 +193,16 @@ InputHandler_DInput::InputHandler_DInput()
 		continue;
 	}
 
-	if (PREFSMAN->m_verbose_log > 1)
-		Locator::getLogger()->info("Found {} DirectInput devices:", Devices.size());
+	Locator::getLogger()->info("Found {} DirectInput devices:", Devices.size());
 	for (unsigned i = 0; i < Devices.size(); ++i) {
-		if (PREFSMAN->m_verbose_log > 1)
-			Locator::getLogger()->info("   {}: '{}' axes: {}, hats: {}, buttons: {} ({})",
-					  i, Devices[i].m_sName.c_str(), Devices[i].axes, Devices[i].hats,
-					  Devices[i].buttons, Devices[i].buffered ? "buffered" : "unbuffered");
+		Locator::getLogger()->info(
+		  "   {}: '{}' axes: {}, hats: {}, buttons: {} ({})",
+		  i,
+		  Devices[i].m_sName.c_str(),
+		  Devices[i].axes,
+		  Devices[i].hats,
+		  Devices[i].buttons,
+		  Devices[i].buffered ? "buffered" : "unbuffered");
 	}
 
 	m_iLastSeenNumHidDevices = GetNumHidDevices();
@@ -222,11 +227,9 @@ InputHandler_DInput::ShutdownThread()
 {
 	m_bShutdown = true;
 	if (m_InputThread.IsCreated()) {
-		if (PREFSMAN->m_verbose_log > 1)
-			Locator::getLogger()->trace("Shutting down DirectInput thread ...");
+		Locator::getLogger()->info("Shutting down DirectInput thread ...");
 		m_InputThread.Wait();
-		if (PREFSMAN->m_verbose_log > 1)
-			Locator::getLogger()->trace("DirectInput thread shut down.");
+		Locator::getLogger()->info("DirectInput thread shut down.");
 	}
 	m_bShutdown = false;
 }
@@ -329,7 +332,8 @@ InputHandler_DInput::UpdatePolled(
 				return;
 
 			if (hr != DI_OK) {
-                Locator::getLogger()->debug(hr_ssprintf(hr, "Failures on polled keyboard update"));
+				Locator::getLogger()->debug(
+				  hr_ssprintf(hr, "Failures on polled keyboard update"));
 				return;
 			}
 
@@ -398,8 +402,11 @@ InputHandler_DInput::UpdatePolled(
 							pos = JOY_AUX_4;
 							val = state.rglSlider[1];
 						} else
-							Locator::getLogger()->warn("Controller '{}' is returning an unknown joystick offset, {}",
-										device.m_sName.c_str(), in.ofs);
+							Locator::getLogger()->warn(
+							  "Controller '{}' is returning an unknown "
+							  "joystick offset, {}",
+							  device.m_sName.c_str(),
+							  in.ofs);
 
 						if (neg != DeviceButton_Invalid) {
 							float l = SCALE(
@@ -484,7 +491,8 @@ InputHandler_DInput::UpdatePolled(
 							neg = MOUSE_WHEELDOWN;
 							pos = MOUSE_WHEELUP;
 							val = state.lZ;
-							// Locator::getLogger()->trace("MouseWheel polled: %i",val);
+							// Locator::getLogger()->trace("MouseWheel polled:
+							// %i",val);
 							INPUTFILTER->UpdateMouseWheel(
 							  static_cast<float>(val));
 							if (val == 0) {
@@ -501,8 +509,11 @@ InputHandler_DInput::UpdatePolled(
 								ButtonPressed(DeviceInput(dev, pos, 0, tm));
 							}
 						} else
-							Locator::getLogger()->warn("Mouse '{}' is returning an unknown mouse offset, {}",
-										device.m_sName.c_str(), in.ofs);
+							Locator::getLogger()->warn(
+							  "Mouse '{}' is returning an unknown mouse "
+							  "offset, {}",
+							  device.m_sName.c_str(),
+							  in.ofs);
 						break;
 					}
 				}
@@ -528,7 +539,9 @@ InputHandler_DInput::UpdateBuffered(
 	}
 
 	if (hr != DI_OK) {
-		Locator::getLogger()->trace(hr_ssprintf(hr, "UpdateBuffered: IDirectInputDevice2_GetDeviceData"));
+		Locator::getLogger()->trace(
+		  "{}",
+		  hr_ssprintf(hr, "UpdateBuffered: IDirectInputDevice2_GetDeviceData"));
 		return;
 	}
 
@@ -580,8 +593,11 @@ InputHandler_DInput::UpdateBuffered(
 						else if (in.ofs == DIMOFS_BUTTON2)
 							mouseInput = MOUSE_MIDDLE;
 						else
-							Locator::getLogger()->warn("Mouse '{}' is returning an unknown mouse offset [button], {}",
-										device.m_sName.c_str(),in.ofs);
+							Locator::getLogger()->warn(
+							  "Mouse '{}' is returning an unknown mouse offset "
+							  "[button], {}",
+							  device.m_sName.c_str(),
+							  in.ofs);
 						ButtonPressed(
 						  DeviceInput(dev, mouseInput, !!evtbuf[i].dwData, tm));
 					} else
@@ -667,8 +683,11 @@ InputHandler_DInput::UpdateBuffered(
 								}
 							}
 						} else
-							Locator::getLogger()->warn("Mouse '{}' is returning an unknown mouse offset [axis], {}",
-										device.m_sName.c_str(), in.ofs);
+							Locator::getLogger()->warn(
+							  "Mouse '{}' is returning an unknown mouse offset "
+							  "[axis], {}",
+							  device.m_sName.c_str(),
+							  in.ofs);
 					} else {
 						// joystick
 						if (in.ofs == DIJOFS_X) {
@@ -696,8 +715,11 @@ InputHandler_DInput::UpdateBuffered(
 							up = JOY_AUX_3;
 							down = JOY_AUX_4;
 						} else
-							Locator::getLogger()->warn("Controller '{}' is returning an unknown joystick offset, {}",
-										device.m_sName.c_str(), in.ofs);
+							Locator::getLogger()->warn(
+							  "Controller '{}' is returning an unknown "
+							  "joystick offset, {}",
+							  device.m_sName.c_str(),
+							  in.ofs);
 
 						float l = SCALE(static_cast<int>(evtbuf[i].dwData),
 										0.0f,
@@ -794,7 +816,8 @@ InputHandler_DInput::DevicesChanged()
 	if (iOldNumHidDevices != m_iLastSeenNumHidDevices ||
 		g_forceJoystickPolling) {
 		g_forceJoystickPolling = false;
-		Locator::getLogger()->warn("Caught HID Changes. Checking for Joystick Changes.");
+		Locator::getLogger()->warn(
+		  "Caught HID Changes. Checking for Joystick Changes.");
 		int iOldNumJoysticks = m_iLastSeenNumJoysticks;
 		m_iLastSeenNumJoysticks = GetNumJoysticksSlow();
 		if (iOldNumJoysticks != m_iLastSeenNumJoysticks) {
@@ -811,7 +834,10 @@ void
 InputHandler_DInput::InputThreadMain()
 {
 	if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST))
-		Locator::getLogger()->warn(werr_ssprintf(GetLastError(), "Failed to set DirectInput thread priority"));
+		Locator::getLogger()->warn(
+		  "{}",
+		  werr_ssprintf(GetLastError(),
+						"Failed to set DirectInput thread priority"));
 
 	// Enable priority boosting.
 	SetThreadPriorityBoost(GetCurrentThread(), FALSE);
@@ -827,7 +853,8 @@ InputHandler_DInput::InputThreadMain()
 		Devices[i].Device->Unacquire();
 		HRESULT hr = Devices[i].Device->SetEventNotification(Handle);
 		if (FAILED(hr))
-			Locator::getLogger()->warn("IDirectInputDevice2_SetEventNotification failed on {}", i);
+			Locator::getLogger()->warn(
+			  "IDirectInputDevice2_SetEventNotification failed on {}", i);
 		Devices[i].Device->Acquire();
 	}
 
@@ -838,7 +865,10 @@ InputHandler_DInput::InputThreadMain()
 
 			int ret = WaitForSingleObjectEx(Handle, 50, true);
 			if (ret == -1) {
-				Locator::getLogger()->trace(werr_ssprintf(GetLastError(), "WaitForSingleObjectEx failed"));
+				Locator::getLogger()->trace(
+				  "{}",
+				  werr_ssprintf(GetLastError(),
+								"WaitForSingleObjectEx failed"));
 				continue;
 			}
 

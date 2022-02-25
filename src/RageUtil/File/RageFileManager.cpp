@@ -305,15 +305,16 @@ ChangeToDirOfExecutable(const std::string& argv0)
 	if (chdir(RageFileManagerUtil::sDirOfExecutable.c_str()))
 #endif
 	{
-		Locator::getLogger()->warn("Can't set current working directory to {}",
-				  RageFileManagerUtil::sDirOfExecutable.c_str());
+		Locator::getLogger()->warn(
+		  "Can't set current working directory to {}",
+		  RageFileManagerUtil::sDirOfExecutable.c_str());
 		return;
 	}
 }
 
 RageFileManager::RageFileManager(const std::string& argv0)
 {
-	Locator::getLogger()->trace(argv0.c_str());
+	Locator::getLogger()->trace("{}", argv0.c_str());
 	ChangeToDirOfExecutable(argv0);
 
 	g_Mutex = new RageEvent("RageFileManager");
@@ -583,9 +584,9 @@ RageFileManager::CreateDir(const std::string& sDir)
 	std::string sTempFile = sDir + "newdir.temp.newdir";
 	RageFile f;
 	if (!f.Open(sTempFile, RageFile::WRITE))
-		Locator::getLogger()->trace("Creating temporary file '{}' failed: {}",
-				   sTempFile.c_str(),
-				   f.GetError().c_str());
+		Locator::getLogger()->warn("Creating temporary file '{}' failed: {}",
+								   sTempFile.c_str(),
+								   f.GetError().c_str());
 	f.Close();
 
 	Remove(sTempFile);
@@ -634,7 +635,7 @@ RageFileManager::Mount(const std::string& sType,
 										 sType.c_str(),
 										 sRoot.c_str(),
 										 sMountPoint.c_str());
-	Locator::getLogger()->trace(sPaths.c_str());
+	Locator::getLogger()->debug("Driver MOUNT: {}", sPaths.c_str());
 #if defined(DEBUG)
 	puts(sPaths);
 #endif
@@ -643,18 +644,19 @@ RageFileManager::Mount(const std::string& sType,
 	Unmount(sType, sRoot, sMountPoint);
 
 	Locator::getLogger()->trace("About to make a driver with \"{}\", \"{}\"",
-						  sType.c_str(),
-						  sRoot.c_str());
+								sType.c_str(),
+								sRoot.c_str());
 	RageFileDriver* pDriver = MakeFileDriver(sType, sRoot);
 	if (pDriver == nullptr) {
-		Locator::getLogger()->warn("Can't mount unknown VFS type \"{}\", root \"{}\"",
-					  sType.c_str(),
-					  sRoot.c_str());
+		Locator::getLogger()->warn(
+		  "Can't mount unknown VFS type \"{}\", root \"{}\"",
+		  sType.c_str(),
+		  sRoot.c_str());
 
 		return false;
 	}
 
-	Locator::getLogger()->trace("Driver %s successfully made.");
+	Locator::getLogger()->debug("Driver %s successfully made.");
 
 	auto* pLoadedDriver = new LoadedDriver;
 	pLoadedDriver->m_pDriver = pDriver;
@@ -746,16 +748,17 @@ RageFileManager::Remount(const std::string& sMountpoint,
 	RageFileDriver* pDriver = GetFileDriver(sMountpoint);
 	if (pDriver == nullptr) {
 		Locator::getLogger()->warn("Remount({},{}): mountpoint not found",
-					  sMountpoint.c_str(),
-					  sPath.c_str());
+								   sMountpoint.c_str(),
+								   sPath.c_str());
 		return;
 	}
 
 	if (!pDriver->Remount(sPath))
-		Locator::getLogger()->warn("Remount({},{}): remount failed (does the driver support "
-				  "remounting?)",
-				  sMountpoint.c_str(),
-				  sPath.c_str());
+		Locator::getLogger()->warn(
+		  "Remount({},{}): remount failed (does the driver support "
+		  "remounting?)",
+		  sMountpoint.c_str(),
+		  sPath.c_str());
 	else
 		pDriver->FlushDirCache("");
 
@@ -921,7 +924,8 @@ RageFileManager::ResolvePath(const std::string& path)
 }
 
 std::string
-RageFileManager::ResolveSongFolder(const std::string& path, bool additionalSongs)
+RageFileManager::ResolveSongFolder(const std::string& path,
+								   bool additionalSongs)
 {
 	std::string tmpPath = path;
 	NormalizePath(tmpPath);
@@ -943,7 +947,7 @@ RageFileManager::ResolveSongFolder(const std::string& path, bool additionalSongs
 		// skip the root game folder if song is located in AdditionalSongs
 		if (additionalSongs && pDriver->m_sMountPoint == "/")
 			continue;
-		
+
 		int iMountPointLen = pDriver->m_sMountPoint.length();
 		if (tmpPath.substr(0, iMountPointLen) != pDriver->m_sMountPoint)
 			continue;
@@ -962,7 +966,7 @@ RageFileManager::ResolveSongFolder(const std::string& path, bool additionalSongs
 	if (resolvedPath.length() > 0)
 		resolvedPath.erase(0, 1);
 #endif
-	
+
 	return resolvedPath;
 }
 

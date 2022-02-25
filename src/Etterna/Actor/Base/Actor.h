@@ -185,6 +185,8 @@ class Actor : public MessageSubscriber
 	auto GetTrueY() -> float; // same
 	auto GetTrueRotationZ() -> float; // same
 	auto GetTrueZoom() -> float;	  // same
+	auto GetTrueZoomX() -> float;
+	auto GetTrueZoomY() -> float;
 	auto IsVisible() -> bool; // same but for gating updates on things that may
 							  // not explicitly set visible = false -mina
 
@@ -616,15 +618,15 @@ class Actor : public MessageSubscriber
 	virtual void SetVertAlign(float f) { m_fVertAlign = f; }
 	void SetHorizAlign(HorizAlign ha)
 	{
-		SetHorizAlign((ha == HorizAlign_Left)
-						? 0.0F
-						: (ha == HorizAlign_Center) ? 0.5F : +1.0F);
+		SetHorizAlign((ha == HorizAlign_Left)	  ? 0.0F
+					  : (ha == HorizAlign_Center) ? 0.5F
+												  : +1.0F);
 	}
 	void SetVertAlign(VertAlign va)
 	{
-		SetVertAlign((va == VertAlign_Top)
-					   ? 0.0F
-					   : (va == VertAlign_Middle) ? 0.5F : +1.0F);
+		SetVertAlign((va == VertAlign_Top)		? 0.0F
+					 : (va == VertAlign_Middle) ? 0.5F
+												: +1.0F);
 	}
 	virtual auto GetHorizAlign() -> float { return m_fHorizAlign; }
 	virtual auto GetVertAlign() -> float { return m_fVertAlign; }

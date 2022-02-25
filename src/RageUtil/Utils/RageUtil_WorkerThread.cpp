@@ -49,8 +49,9 @@ RageWorkerThread::StopThread()
 	/* If we're timed out, wait. */
 	m_WorkerEvent.Lock();
 	if (m_bTimedOut) {
-		Locator::getLogger()->trace("Waiting for timed-out worker thread \"{}\" to complete ...",
-				   m_sName.c_str());
+		Locator::getLogger()->debug(
+		  "Waiting for timed-out worker thread \"{}\" to complete ...",
+		  m_sName.c_str());
 		while (m_bTimedOut)
 			m_WorkerEvent.Wait();
 	}
@@ -62,8 +63,8 @@ RageWorkerThread::StopThread()
 
 	/* Shut down. */
 	if (!DoRequest(REQ_SHUTDOWN))
-		Locator::getLogger()->warn("May have failed to shut down worker thread \"{}\"",
-				  m_sName.c_str());
+		Locator::getLogger()->warn(
+		  "May have failed to shut down worker thread \"{}\"", m_sName.c_str());
 	m_WorkerThread.Wait();
 }
 
@@ -74,7 +75,10 @@ RageWorkerThread::DoRequest(int iRequest)
 	ASSERT(m_iRequest == REQ_NONE);
 
 	if (m_Timeout <= 0.F && iRequest != REQ_SHUTDOWN)
-		Locator::getLogger()->warn("Request made with timeout disabled ({}, iRequest = {})", m_sName.c_str(), iRequest);
+		Locator::getLogger()->warn(
+		  "Request made with timeout disabled ({}, iRequest = {})",
+		  m_sName.c_str(),
+		  iRequest);
 
 	/* Set the request, and wake up the worker thread. */
 	m_WorkerEvent.Lock();
@@ -113,8 +117,7 @@ RageWorkerThread::WorkerMain()
 		bool bTimeToRunHeartbeat = false;
 		m_WorkerEvent.Lock();
 		while (m_iRequest == REQ_NONE && !bTimeToRunHeartbeat) {
-			if (!m_WorkerEvent.Wait(m_fHeartbeat != -1 ? m_NextHeartbeat
-													   : 0.F))
+			if (!m_WorkerEvent.Wait(m_fHeartbeat != -1 ? m_NextHeartbeat : 0.F))
 				bTimeToRunHeartbeat = true;
 		}
 		const int iRequest = m_iRequest;
