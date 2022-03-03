@@ -348,7 +348,7 @@ class RageSemaphore
 	RageSemaphore(const RageSemaphore& rhs) = delete;
 };
 
-class RageSharedMutex : protected RageMutex
+class RageSharedMutex : public RageMutex
 {
   public:
 	void Lock() override;
