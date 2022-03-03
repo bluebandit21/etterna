@@ -94,6 +94,8 @@ class RageTextureManager
 	RageTextureID GetDefaultTextureID();
 	RageTextureID GetScreenTextureID();
 	RageSurface* GetScreenSurface();
+	// Lua
+	void PushSelf(lua_State* L);
 
   private:
 	void DeleteTexture(RageTexture* t);

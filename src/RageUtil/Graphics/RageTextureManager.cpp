@@ -49,7 +49,17 @@ RageSharedMutex textureIdsByPointerLock(
 std::map<RageTexture*, RageTextureID> m_texture_ids_by_pointer;
 } // namespace;
 
-RageTextureManager::RageTextureManager() {}
+RageTextureManager::RageTextureManager()
+{
+	// Register with Lua.
+	{
+		Lua* L = LUA->Get();
+		lua_pushstring(L, "TEXTUREMAN");
+		this->PushSelf(L);
+		lua_settable(L, LUA_GLOBALSINDEX);
+		LUA->Release(L);
+	}
+}
 
 RageTextureManager::~RageTextureManager()
 {
@@ -501,3 +511,22 @@ RageTextureManager::DiagnosticOutput() const
 	Locator::getLogger()->info("total {:3i} texels", iTotal);
 	pathToTextureLock.UnlockShared();
 }
+
+// lua start
+#include "Etterna/Models/Lua/LuaBinding.h"
+
+/** @brief Allow Lua to have access to the RageTextureManager. */
+class LunaRageTextureManager : public Luna<RageTextureManager>
+{
+  public:
+	static int AsyncLoadTexture(T* p, lua_State* L)
+	{
+		const RageTextureID ID(SArg(1));
+		p->AsyncLoadTexture(ID);
+		return 0;
+	}
+	LunaRageTextureManager() { ADD_METHOD(AsyncLoadTexture); }
+};
+
+LUA_REGISTER_CLASS(RageTextureManager)
+// lua end
