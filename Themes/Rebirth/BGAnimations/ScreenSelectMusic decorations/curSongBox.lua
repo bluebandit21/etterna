@@ -151,6 +151,23 @@ t[#t+1] = Def.ActorFrame {
             self:scaletoclipped(actuals.Width, actuals.BannerHeight)
             self:SetDecodeMovie(useVideoBanners())
         end,
+        SetCommand = function(self, params)
+            if params.song then
+                local bnpath = params.song:GetBannerPath()
+                if not bnpath then
+                    bnpath = THEME:GetPathG("Common", "fallback banner")
+                end
+                -- Begin loading in texture in preperation
+                TEXTUREMAN:AsyncLoadTexture(bnpath)
+            else
+                local bnpath = WHEELDATA:GetFolderBanner(params.hovered)
+                if not bnpath or bnpath == "" then
+                    bnpath = THEME:GetPathG("Common", "fallback banner")
+                end
+                -- Begin loading in texture in preperation
+                TEXTUREMAN:AsyncLoadTexture(bnpath)
+            end
+        end,
         SetBannerCommand = function(self, params)
             self:finishtweening()
             self:smooth(0.05)
