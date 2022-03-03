@@ -50,6 +50,7 @@ class RageTextureManager
 	void Update(float fDeltaTime);
 
 	RageTexture* LoadTexture(const RageTextureID& ID);
+	void AsyncLoadTexture(RageTextureID ID);
 	RageTexture* CopyTexture(
 	  RageTexture* pCopy); // returns a ref to the same texture, not a deep copy
 	bool IsTextureRegistered(RageTextureID ID) const;
@@ -108,6 +109,9 @@ class RageTextureManager
 	int m_iNoWarnAboutOddDimensions{ 0 };
 	RageTextureID::TexPolicy m_TexturePolicy{ RageTextureID::TEX_DEFAULT };
 };
+
+int
+AsyncLoadTextureInternal(void* ID);
 
 extern RageTextureManager*
   TEXTUREMAN; // global and accessible from anywhere in our program

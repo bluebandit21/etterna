@@ -195,7 +195,6 @@ RageTextureManager::LoadTextureInternal(RageTextureID ID)
 	AdjustTextureID(ID);
 
 	pathToTextureLock.Lock();
-	textureIdsByPointerLock.Lock();
 
 	/* We could have two copies of the same bitmap if there are equivalent but
 	 * different paths, e.g. "Bitmaps\me.bmp" and "..\Rage PC
@@ -207,7 +206,6 @@ RageTextureManager::LoadTextureInternal(RageTextureID ID)
 		pTexture->m_iRefCount++;
 
 		pathToTextureLock.Unlock();
-		textureIdsByPointerLock.Unlock();
 		return pTexture;
 	}
 	pathToTextureLock.Unlock();
@@ -246,6 +244,46 @@ RageTextureManager::LoadTexture(const RageTextureID& ID)
 	}
 
 	return pTexture;
+}
+
+/* Asynchronously begin loading in texture for later use*/
+void
+RageTextureManager::AsyncLoadTexture(RageTextureID ID)
+{
+	RageThread thread;
+	thread.SetName("Async Texture Loading");
+	thread.Create(AsyncLoadTextureInternal, &ID);
+}
+
+int
+AsyncLoadTextureInternal(void* data)
+{
+	// TODO: A lot of the code in here is duplicated from LoadTextureInternal
+	// and probably shouldn't be
+	RageTextureID ID = *reinterpret_cast<RageTextureID*>(data);
+	pathToTextureLock.LockShared();
+	const auto ret = (m_mapPathToTexture.find(ID) != m_mapPathToTexture.end());
+	pathToTextureLock.UnlockShared();
+	if (ret)
+		return 0; // Texture is already loaded, no need to async load it
+
+	RageTexture* pTexture;
+	if (ID.filename == g_sDefaultTextureName) {
+		pTexture = new RageTexture_Default;
+	} else if (ActorUtil::GetFileType(ID.filename) == FT_Movie) {
+		pTexture = RageMovieTexture::Create(ID);
+	} else {
+		pTexture = new RageBitmapTexture(ID);
+	}
+	pathToTextureLock.Lock();
+	textureIdsByPointerLock.Lock();
+
+	m_mapPathToTexture[ID] = pTexture;
+	m_texture_ids_by_pointer[pTexture] = ID;
+
+	pathToTextureLock.Unlock();
+	textureIdsByPointerLock.Unlock();
+	return 0;
 }
 
 RageTexture*
