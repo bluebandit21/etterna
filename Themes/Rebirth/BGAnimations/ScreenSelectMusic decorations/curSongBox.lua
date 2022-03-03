@@ -10,7 +10,7 @@ local t = Def.ActorFrame {
 
         lastHovered = params.hovered
 
-        -- cascade visual update to everything
+        -- cascade visual update to everything *except* for song banner which will wait for the wheel to stop
         self:playcommand("Set", {song = params.song, group = params.group, hovered = params.hovered, steps = params.steps})
     end,
     CurrentRateChangedMessageCommand = function(self)
@@ -24,6 +24,9 @@ local t = Def.ActorFrame {
     end,
     PlayerInfoFrameTabSetMessageCommand = function(self)
         focused = false
+    end,
+    WheelStoppedMessageCommand = function(self, params)
+        self:playcommand("SetBanner", {song=params.song})
     end
 }
 
@@ -148,7 +151,7 @@ t[#t+1] = Def.ActorFrame {
             self:scaletoclipped(actuals.Width, actuals.BannerHeight)
             self:SetDecodeMovie(useVideoBanners())
         end,
-        SetCommand = function(self, params)
+        SetBannerCommand = function(self, params)
             self:finishtweening()
             self:smooth(0.05)
             self:diffusealpha(1)
