@@ -27,6 +27,7 @@
 #include "Core/Services/Locator.hpp"
 #include "RageTextureManager.h"
 #include "RageUtil/Utils/RageUtil.h"
+#include "RageUtil/Misc/RageThreads.h"
 #include "Etterna/Screen/Others/Screen.h"
 #include "Etterna/Singletons/ScreenManager.h"
 #include "arch/MovieTexture/MovieTexture.h"
@@ -39,8 +40,12 @@ RageTextureManager* TEXTUREMAN =
   nullptr; // global and accessible from anywhere in our program
 
 namespace {
+RageSharedMutex pathToTextureLock("TextureManager PathToTexture Lock");
 std::map<RageTextureID, RageTexture*> m_mapPathToTexture;
+RageSharedMutex texturesToUpdateLock("TextureManager texturesToUpdate Lock");
 std::map<RageTextureID, RageTexture*> m_textures_to_update;
+RageSharedMutex textureIdsByPointerLock(
+  "TextureManager textureIdsByPointer Lock");
 std::map<RageTexture*, RageTextureID> m_texture_ids_by_pointer;
 } // namespace;
 
@@ -48,16 +53,24 @@ RageTextureManager::RageTextureManager() {}
 
 RageTextureManager::~RageTextureManager()
 {
+	pathToTextureLock.Lock();
+	texturesToUpdateLock.Lock();
+	textureIdsByPointerLock.Lock();
+
 	for (auto& i : m_mapPathToTexture) {
 		auto pTexture = i.second;
 		if (pTexture->m_iRefCount)
 			Locator::getLogger()->warn("TEXTUREMAN LEAK: '{}', RefCount = {}.",
-					   i.first.filename.c_str(),
-					   pTexture->m_iRefCount);
+									   i.first.filename.c_str(),
+									   pTexture->m_iRefCount);
 		SAFE_DELETE(pTexture);
 	}
 	m_textures_to_update.clear();
 	m_texture_ids_by_pointer.clear();
+
+	pathToTextureLock.Unlock();
+	texturesToUpdateLock.Unlock();
+	textureIdsByPointerLock.Unlock();
 }
 
 void
@@ -72,10 +85,12 @@ RageTextureManager::Update(float fDeltaTime)
 		}
 	}
 
+	texturesToUpdateLock.Lock();
 	for (auto& id : m_textures_to_update) {
 		auto pTexture = id.second;
 		pTexture->Update(fDeltaTime);
 	}
+	texturesToUpdateLock.Unlock();
 }
 
 void
@@ -92,7 +107,10 @@ bool
 RageTextureManager::IsTextureRegistered(RageTextureID ID) const
 {
 	AdjustTextureID(ID);
-	return m_mapPathToTexture.find(ID) != m_mapPathToTexture.end();
+	pathToTextureLock.LockShared();
+	bool ret = m_mapPathToTexture.find(ID) != m_mapPathToTexture.end();
+	pathToTextureLock.UnlockShared();
+	return ret;
 }
 
 /* If you've set up a texture yourself, register it here so it can be referenced
@@ -102,6 +120,9 @@ void
 RageTextureManager::RegisterTexture(RageTextureID ID, RageTexture* pTexture)
 {
 	AdjustTextureID(ID);
+
+	pathToTextureLock.Lock();
+	textureIdsByPointerLock.Lock();
 
 	/* Make sure we don't already have a texture with this ID.  If we do, the
 	 * caller should have used it. */
@@ -113,13 +134,18 @@ RageTextureManager::RegisterTexture(RageTextureID ID, RageTexture* pTexture)
 
 	m_mapPathToTexture[ID] = pTexture;
 	m_texture_ids_by_pointer[pTexture] = ID;
+
+	pathToTextureLock.Unlock();
+	textureIdsByPointerLock.Unlock();
 }
 
 void
 RageTextureManager::RegisterTextureForUpdating(const RageTextureID& id,
 											   RageTexture* tex)
 {
+	texturesToUpdateLock.Lock();
 	m_textures_to_update[id] = tex;
+	texturesToUpdateLock.Unlock();
 }
 
 static const std::string g_sDefaultTextureName = "__blank__";
@@ -163,9 +189,13 @@ class RageTexture_Default : public RageTexture
 RageTexture*
 RageTextureManager::LoadTextureInternal(RageTextureID ID)
 {
-	Locator::getLogger()->trace("RageTextureManager::LoadTexture({}).", ID.filename.c_str());
+	Locator::getLogger()->trace("RageTextureManager::LoadTexture({}).",
+								ID.filename.c_str());
 
 	AdjustTextureID(ID);
+
+	pathToTextureLock.Lock();
+	textureIdsByPointerLock.Lock();
 
 	/* We could have two copies of the same bitmap if there are equivalent but
 	 * different paths, e.g. "Bitmaps\me.bmp" and "..\Rage PC
@@ -175,8 +205,13 @@ RageTextureManager::LoadTextureInternal(RageTextureID ID)
 		/* Found the texture.  Just increase the refcount and return it. */
 		const auto pTexture = p->second;
 		pTexture->m_iRefCount++;
+
+		pathToTextureLock.Unlock();
+		textureIdsByPointerLock.Unlock();
 		return pTexture;
 	}
+	pathToTextureLock.Unlock();
+	textureIdsByPointerLock.Unlock();
 
 	// The texture is not already loaded.  Load it.
 
@@ -188,9 +223,14 @@ RageTextureManager::LoadTextureInternal(RageTextureID ID)
 	} else {
 		pTexture = new RageBitmapTexture(ID);
 	}
+	pathToTextureLock.Lock();
+	textureIdsByPointerLock.Lock();
 
 	m_mapPathToTexture[ID] = pTexture;
 	m_texture_ids_by_pointer[pTexture] = ID;
+
+	pathToTextureLock.Unlock();
+	textureIdsByPointerLock.Unlock();
 
 	return pTexture;
 }
@@ -264,6 +304,10 @@ RageTextureManager::DeleteTexture(RageTexture* t)
 	// LOG->Trace( "RageTextureManager: deleting '%s'.",
 	// t->GetID().filename.c_str() );
 
+	textureIdsByPointerLock.Lock();
+	pathToTextureLock.Lock();
+	texturesToUpdateLock.Lock();
+
 	const auto id_entry = m_texture_ids_by_pointer.find(t);
 	if (id_entry != m_texture_ids_by_pointer.end()) {
 		const auto tex_entry = m_mapPathToTexture.find(id_entry->second);
@@ -277,9 +321,16 @@ RageTextureManager::DeleteTexture(RageTexture* t)
 			m_textures_to_update.erase(tex_update_entry);
 		}
 		m_texture_ids_by_pointer.erase(id_entry);
+
+		textureIdsByPointerLock.Unlock();
+		pathToTextureLock.Unlock();
+		texturesToUpdateLock.Unlock();
 		return;
 	}
 
+	textureIdsByPointerLock.Unlock();
+	pathToTextureLock.Unlock();
+	texturesToUpdateLock.Unlock();
 	FAIL_M("Tried to delete a texture that wasn't in the ids by pointer list.");
 }
 
@@ -288,6 +339,8 @@ RageTextureManager::GarbageCollect(GCType type)
 {
 	// Search for old textures with refcount==0 to unload
 	Locator::getLogger()->debug("Performing texture garbage collection.");
+
+	pathToTextureLock.Lock();
 
 	for (auto i = m_mapPathToTexture.begin(); i != m_mapPathToTexture.end();) {
 		const auto j = i;
@@ -326,6 +379,7 @@ RageTextureManager::GarbageCollect(GCType type)
 		if (bDeleteThis)
 			DeleteTexture(t);
 	}
+	pathToTextureLock.Unlock();
 }
 
 void
@@ -337,9 +391,13 @@ RageTextureManager::ReloadAll()
 	 * ton of cached data that we're not necessarily going to use. */
 	DoDelayedDelete();
 
+	pathToTextureLock.Lock();
+
 	for (auto ID : m_mapPathToTexture) {
 		ID.second->Reload();
 	}
+
+	pathToTextureLock.Unlock();
 
 	EnableOddDimensionWarning();
 }
@@ -353,10 +411,12 @@ RageTextureManager::ReloadAll()
 void
 RageTextureManager::InvalidateTextures()
 {
-	for (auto& i : m_mapPathToTexture) {
+	pathToTextureLock.Lock();
+	for (const auto& i : m_mapPathToTexture) {
 		auto pTexture = i.second;
 		pTexture->Invalidate();
 	}
+	pathToTextureLock.Unlock();
 }
 
 bool
@@ -378,12 +438,12 @@ RageTextureManager::SetPrefs(RageTextureManagerPrefs prefs)
 void
 RageTextureManager::DiagnosticOutput() const
 {
-	const unsigned iCount =
-	  distance(m_mapPathToTexture.begin(), m_mapPathToTexture.end());
+	pathToTextureLock.LockShared();
+	const unsigned iCount = m_mapPathToTexture.size();
 	Locator::getLogger()->info("{} textures loaded:", iCount);
 
 	auto iTotal = 0;
-	for (auto& i : m_mapPathToTexture) {
+	for (const auto& i : m_mapPathToTexture) {
 		const auto& ID = i.first;
 		const RageTexture* pTex = i.second;
 
@@ -396,8 +456,10 @@ RageTextureManager::DiagnosticOutput() const
 		if (!sDiags.empty())
 			sStr += " " + sDiags;
 
-		Locator::getLogger()->info(" {:<40s} {}", sStr.c_str(), Basename(ID.filename).c_str());
+		Locator::getLogger()->info(
+		  " {:<40s} {}", sStr.c_str(), Basename(ID.filename).c_str());
 		iTotal += pTex->GetTextureHeight() * pTex->GetTextureWidth();
 	}
 	Locator::getLogger()->info("total {:3i} texels", iTotal);
+	pathToTextureLock.UnlockShared();
 }
