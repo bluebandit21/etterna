@@ -489,8 +489,12 @@ Wheel.mt = {
 
         end
 
-        -- the wheel has settled
-        if whee.positionOffsetFromSelection == 0 and not whee.settled then
+
+        if whee.moving ~= 0 then
+            whee.settled = false
+            whee.stopped = false
+        elseif not whee.settled then
+             -- the wheel has settled
             whee:updateGlobalsFromCurrentItem()
             whee:updateMusicFromCurrentItem()
             -- settled brings along the Song, Group, Steps, and HoveredItem
@@ -504,10 +508,14 @@ Wheel.mt = {
                 maxIndex = #whee.items
             })
             whee.settled = true
+        elseif not whee.stopped then
+            --The wheel has fully 100% stopped visually
+            MESSAGEMAN:Broadcast("WheelStopped", {
+                song = GAMESTATE:GetCurrentSong()
+            })
+            whee.stopped = true
         end
-        if whee.positionOffsetFromSelection ~= 0 then
-            whee.settled = false
-        end
+        
     end,
     rebuildFrames = function(whee, newIndex)
         whee.items = whee.itemsGetter()
@@ -573,6 +581,7 @@ function Wheel:new(params)
     crossedGroupBorder = false -- reset default
     diffSelection = 1 -- reset default
     whee.settled = false -- leaving this false causes 1 settle message on init
+    whee.stopped = false -- Not visually moving at all, in addition to not moving between songs
     whee.itemsGetter = params.itemsGetter
     whee.count = params.count
     whee.sort = params.sort
@@ -816,7 +825,7 @@ function Wheel:new(params)
                         end
                     end
 
-                else
+                elseif whee.positionOffsetFromSelection ~= 0 then
                     -- the wheel should rotate toward selection but isnt "moving"
                     local sping = 0.2 + (math.abs(whee.positionOffsetFromSelection) / 0.1)
                     if whee.positionOffsetFromSelection > 0 then
