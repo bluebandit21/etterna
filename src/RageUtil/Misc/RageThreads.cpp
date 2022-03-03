@@ -468,7 +468,7 @@ RageMutex::Lock()
 
 		/* Pass the crash handle of the other thread, so it can backtrace that
 		 * thread. */
-//		CrashHandler::ForceDeadlock(sReason, CrashHandle);
+		//		CrashHandler::ForceDeadlock(sReason, CrashHandle);
 	}
 
 	m_LockedBy = iThisThreadId;
@@ -541,7 +541,8 @@ LockMutex::Unlock()
 	if (file && locked_at != -1) {
 		const float dur = RageTimer::GetTimeSinceStart() - locked_at;
 		if (dur > 0.015f)
-			Locator::getLogger()->trace("Lock at {}:{} took {}", file, line, dur);
+			Locator::getLogger()->trace(
+			  "Lock at {}:{} took {}", file, line, dur);
 	}
 }
 
@@ -632,11 +633,76 @@ RageSemaphore::Wait(bool bFailOnTimeout)
 			   ThisSlot ? ThisSlot->GetThreadName()
 						: "(???"
 						  ")"); // stupid trigraph warnings
-//	CrashHandler::ForceDeadlock(sReason, GetInvalidThreadId());
+	//	CrashHandler::ForceDeadlock(sReason, GetInvalidThreadId());
 }
 
 bool
 RageSemaphore::TryWait()
 {
 	return m_pSema->TryWait();
+}
+
+void
+RageSharedMutex::Lock()
+{
+	while (true) {
+		{
+			LockMutex lock = LockMutex(
+			  sharedCountLock); // Lock access to shared count variable
+			if (shared_count == 0) {
+				// There are no shared locks to the resource; we can try to make
+				// an exclusive one
+				bool ret = RageMutex::TryLock();
+				if (ret)
+					return; // We succesfully acquired an exclusive lock
+			}
+		}
+		std::this_thread::yield();
+	}
+}
+
+bool
+RageSharedMutex::TryLock()
+{
+	LockMutex lock =
+	  LockMutex(sharedCountLock); // Lock access to shared count variable
+	return RageMutex::TryLock();
+}
+
+void
+RageSharedMutex::LockShared()
+{
+	while (true) {
+		{
+			LockMutex lock = LockMutex(
+			  sharedCountLock); // Lock access to shared count variable
+			if (RageMutex::TryLock()) {
+				// No exclusive lock is active right now, acquire a shared lock
+				shared_count += 1;
+				RageMutex::Unlock(); // Unlock the exclusive lock!
+				return;
+			}
+		}
+		std::this_thread::yield();
+	}
+}
+
+bool
+RageSharedMutex::TryLockShared()
+{
+	LockMutex lock =
+	  LockMutex(sharedCountLock); // Lock access to shared count variable
+	if (!RageMutex::TryLock())
+		return false; // Exclusive lock active right now,
+	shared_count += 1;
+	RageMutex::Unlock();
+	return true;
+}
+
+void
+RageSharedMutex::UnlockShared()
+{
+	LockMutex lock =
+	  LockMutex(sharedCountLock); // Lock access to shared count variable
+	shared_count -= 1;
 }

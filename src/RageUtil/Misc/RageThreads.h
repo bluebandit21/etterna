@@ -81,12 +81,11 @@ parallelExecution(std::vector<T> vec,
 				  void* stuff)
 {
 	const int THREADS =
-	  PREFSMAN->ThreadsToUse <= 0
-		? std::thread::hardware_concurrency()
-		: PREFSMAN->ThreadsToUse <
-			  static_cast<int>(std::thread::hardware_concurrency())
-			? PREFSMAN->ThreadsToUse
-			: static_cast<int>(std::thread::hardware_concurrency());
+	  PREFSMAN->ThreadsToUse <= 0 ? std::thread::hardware_concurrency()
+	  : PREFSMAN->ThreadsToUse <
+		  static_cast<int>(std::thread::hardware_concurrency())
+		? PREFSMAN->ThreadsToUse
+		: static_cast<int>(std::thread::hardware_concurrency());
 	std::vector<vectorRange<T>> workloads =
 	  splitWorkLoad(vec, static_cast<size_t>(vec.size() / THREADS));
 	ThreadData data;
@@ -122,12 +121,11 @@ parallelExecution(std::vector<T> vec,
 				  std::function<void(vectorRange<T>, ThreadData*)> exec)
 {
 	const int THREADS =
-	  PREFSMAN->ThreadsToUse <= 0
-		? std::thread::hardware_concurrency()
-		: PREFSMAN->ThreadsToUse <
-			  static_cast<int>(std::thread::hardware_concurrency())
-			? PREFSMAN->ThreadsToUse
-			: static_cast<int>(std::thread::hardware_concurrency());
+	  PREFSMAN->ThreadsToUse <= 0 ? std::thread::hardware_concurrency()
+	  : PREFSMAN->ThreadsToUse <
+		  static_cast<int>(std::thread::hardware_concurrency())
+		? PREFSMAN->ThreadsToUse
+		: static_cast<int>(std::thread::hardware_concurrency());
 	std::vector<vectorRange<T>> workloads =
 	  splitWorkLoad(vec, static_cast<size_t>(vec.size() / THREADS));
 	ThreadData data;
@@ -220,7 +218,6 @@ class RageThreadRegister
 	  -> RageThreadRegister& = delete;
 	RageThreadRegister(const RageThreadRegister& rhs) = delete;
 };
-
 
 /* Mutex class that follows the behavior of Windows mutexes: if the same
  * thread locks the same mutex twice, we just increase a refcount; a mutex
@@ -351,4 +348,25 @@ class RageSemaphore
 	RageSemaphore(const RageSemaphore& rhs) = delete;
 };
 
+class RageSharedMutex : protected RageMutex
+{
+  public:
+	void Lock() override;
+	bool TryLock() override;
+	// Unlock() uses parent implementation
+	// IsLockedByThisThread() uses parent implementation
+	void LockShared();
+	bool TryLockShared();
+	void UnlockShared();
+	RageSharedMutex(const std::string& name)
+	  : RageMutex(name)
+	  , sharedCountLock(name + " shared count lock")
+	{
+		shared_count = 0;
+	};
+
+  protected:
+	RageMutex sharedCountLock;
+	int shared_count;
+};
 #endif
