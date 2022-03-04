@@ -521,7 +521,25 @@ class LunaRageTextureManager : public Luna<RageTextureManager>
   public:
 	static int AsyncLoadTexture(T* p, lua_State* L)
 	{
-		const RageTextureID ID(SArg(1));
+		RageTextureID ID(SArg(1));
+		// TODO: This should not be this
+
+		// Copy-pasted from Sprite::SongBGTexture(ID)
+		ID.bMipMaps = true;
+
+		/* Song backgrounds are, by definition, in the background, so there's no
+		 * need to keep alpha. */
+		ID.iAlphaBits = 0;
+
+		/* By default, song graphics are volatile: they're removed after one
+		 * use. This is because some screens iteratively load and display lots
+		 * of them (eg. ScreenSelectMusic,, ScreenEditMenu) one at a time, and
+		 * we don't want to have hundreds of banners loaded at once. */
+		ID.Policy = RageTextureID::TEX_VOLATILE;
+
+		ID.bDither = true;
+
+		TEXTUREMAN->AdjustTextureID(ID);
 		p->AsyncLoadTexture(ID);
 		return 0;
 	}
