@@ -12,8 +12,8 @@ endif()
 message("Processor: ${CMAKE_SYSTEM_PROCESSOR}")
 
 option(MUFFT_SIMD_SSE "Enable SSE support if present" ON)
-option(MUFFT_SIMD_SSE3 "Enable SSE3 support if present" ON)
-option(MUFFT_SIMD_AVX "Enable AVX support if present" ON)
+option(MUFFT_SIMD_SSE3 "Enable SSE3 support if present" OFF)
+option(MUFFT_SIMD_AVX "Enable AVX support if present" OFF)
 option(MUFFT_ENABLE_FFTW "Enable FFTW support" ON)
 
 if (ANDROID)

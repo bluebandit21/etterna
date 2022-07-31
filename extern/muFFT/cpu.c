@@ -25,6 +25,8 @@
 #include <intrin.h>
 #endif
 
+//TODO: Don't commit
+#undef MUFFT_HAVE_X86
 #ifdef MUFFT_HAVE_X86
 
 /// \brief Wrapper routine for x86 CPUID

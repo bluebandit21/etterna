@@ -21,6 +21,7 @@
 #include "../fft_internal.h"
 
 #undef MANGLE
+#ifndef __aarch64__
 #if __AVX__
 #include <immintrin.h>
 #define MANGLE(x) x ## _avx
@@ -32,6 +33,17 @@
 #define MANGLE(x) x ## _sse
 #else
 #error "This file must be built with x86 SSE/AVX support."
+#endif
+#else
+//TODO: This is all hacky hacky hacky garbage heck me
+#include "sse2neon.h"
+#if __AVX__
+#define MANGLE(x) x ## _avx
+#elif __SSE3__
+#define MANGLE(x) x ## _sse3
+#else //__SSE__
+#define MANGLE(x) x ## _sse
+#endif
 #endif
 
 #if __AVX__

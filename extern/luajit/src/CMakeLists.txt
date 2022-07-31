@@ -100,6 +100,13 @@ else()
   message(FATAL_ERROR "Unsupported target architecture: '${LJ_DETECTED_ARCH}'")
 endif()
 
+#Hacky shit
+set(LJ_TARGET_ARCH "arm64")
+if (LJ_BIG_ENDIAN)
+  set(TARGET_ARCH -D__AARCH64EB__=1)
+endif()
+
+
 if("${LJ_DETECTED_FPU_MODE}" STREQUAL "Hard")
   set(LJ_HAS_FPU 1)
   set(DASM_FLAGS ${DASM_FLAGS} -D FPU)
@@ -502,7 +509,8 @@ add_dependencies(libluajit
   buildvm_arch_h
   buildvm
   lj_gen_headers
-  lj_gen_folddef)
+  lj_gen_folddef
+  lj_gen_vm_s)
 target_include_directories(libluajit PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR})

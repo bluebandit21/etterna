@@ -17,7 +17,7 @@
 #include "Core/Services/Locator.hpp"
 #include "GamePreferences.h"
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
 #include <cpuid.h>
 #endif
 
@@ -479,11 +479,9 @@ DetermineScoreEligibility(const PlayerStageStats& pss, const PlayerState& ps)
 
 	// invalidate if any turns are on other than Mirror (shuffle)
 	// (this starts after mirror)
-	for (int ti = PlayerOptions::TURN_BACKWARDS;
-		 ti < PlayerOptions::NUM_TURNS;
+	for (int ti = PlayerOptions::TURN_BACKWARDS; ti < PlayerOptions::NUM_TURNS;
 		 ti++) {
-		PlayerOptions::Turn t =
-		  static_cast<PlayerOptions::Turn>(ti);
+		PlayerOptions::Turn t = static_cast<PlayerOptions::Turn>(ti);
 
 		if (turns[t])
 			return false;
