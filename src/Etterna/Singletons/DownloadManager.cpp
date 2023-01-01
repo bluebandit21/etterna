@@ -30,6 +30,7 @@
 #include <intrin.h>
 #endif
 
+#include <tuple>
 #include <unordered_set>
 #include <algorithm>
 
@@ -286,6 +287,28 @@ jsonObjectToString(Value& doc)
 	doc.Accept(w);
 	return buffer.GetString();
 }
+string
+UrlEncode(const string& str)
+{
+	char* escaped = curl_easy_escape(nullptr, str.data(), str.length());
+	string ret(escaped);
+	curl_free(escaped);
+	return ret;
+}
+inline std::string
+encodeDownloadUrl(const std::string& url)
+{
+	auto last_slash = url.find_last_of('/');
+	auto base_url = url.substr(0, last_slash + 1);
+	auto filename = url.substr(last_slash + 1);
+	int outlength = 0;
+	char* unescaped_c_char_filename = curl_easy_unescape(
+	  nullptr, filename.c_str(), filename.length(), &outlength);
+	std::string unescaped_filename(unescaped_c_char_filename, outlength);
+	curl_free(unescaped_c_char_filename);
+	return base_url + UrlEncode(unescaped_filename);
+}
+
 DownloadManager::DownloadManager()
 {
 	EmptyTempDLFileDir();
@@ -330,15 +353,6 @@ DownloadManager::UpdateGameplayState(bool gameplay)
 	this->gameplay = gameplay;
 }
 
-string
-UrlEncode(const string& str)
-{
-	char* escaped = curl_easy_escape(nullptr, str.data(), str.length());
-	string ret(escaped);
-	curl_free(escaped);
-	return ret;
-}
-
 void
 Download::Update(float fDeltaSeconds)
 {
@@ -368,15 +382,7 @@ DownloadManager::DownloadAndInstallPack(DownloadablePack* pack, bool mirror)
 	}
 	string& url = mirror ? pack->mirror
 						: pack->url;
-	auto last_slash = url.find_last_of('/');
-	auto base_url = url.substr(0, last_slash + 1);
-	auto filename = url.substr(last_slash + 1);
-	int outlength = 0;
-	char* unescaped_c_char_filename = curl_easy_unescape(
-	  nullptr, filename.c_str(), filename.length(), &outlength);
-	std::string unescaped_filename(unescaped_c_char_filename, outlength);
-	curl_free(unescaped_c_char_filename);
-	string encoded_url = base_url + UrlEncode(unescaped_filename);
+	auto encoded_url = encodeDownloadUrl(url);
 
 	auto dl = DownloadAndInstallPack(encoded_url,
 										  pack->name + ".zip");
@@ -471,16 +477,16 @@ DownloadManager::init()
 				curl_easy_cleanup(msg->easy_handle);
 			}
 			if (!result_handles.empty()) {
-				std::remove_if(local_http_reqs.begin(),
-							   local_http_reqs.end(),
-							   [result_handles](CURL* x) {
-								   return std::find_if(
-											result_handles.begin(),
-											result_handles.end(),
-											[x](auto pair) {
-												return pair.first == x;
-											}) != result_handles.end();
-							   });
+				std::ignore = std::remove_if(
+				  local_http_reqs.begin(),
+				  local_http_reqs.end(),
+				  [result_handles](CURL* x) {
+					  return std::find_if(result_handles.begin(),
+										  result_handles.end(),
+										  [x](auto pair) {
+											  return pair.first == x;
+										  }) != result_handles.end();
+				  });
 				handle_count_changed = true;
 				{
 					const std::lock_guard<std::mutex> lock(
@@ -736,7 +742,8 @@ DownloadManager::RemoveFavorite(const string& chartkey)
 	  std::find(DLMAN->favorites.begin(), DLMAN->favorites.end(), chartkey);
 	if (it != DLMAN->favorites.end())
 		DLMAN->favorites.erase(it);
-	string req = "user/" + UrlEncode(DLMAN->sessionUser) + "/favorites/" + UrlEncode(chartkey);
+	string req = "user/" + UrlEncode(DLMAN->sessionUser) + "/favorites/" +
+				 UrlEncode(chartkey);
 	auto r = SendRequest(req, {}, {});
 	if (r)
 		curl_easy_setopt_log_err(r->handle, CURLOPT_CUSTOMREQUEST, "DELETE");
@@ -746,7 +753,8 @@ DownloadManager::RemoveFavorite(const string& chartkey)
 void
 DownloadManager::RemoveGoal(const string& chartkey, float wife, float rate)
 {
-	string req = "user/" + UrlEncode(DLMAN->sessionUser) + "/goals/" + UrlEncode(chartkey )+ "/" +
+	string req = "user/" + UrlEncode(DLMAN->sessionUser) + "/goals/" +
+				 UrlEncode(chartkey) + "/" +
 				 to_string(wife) + "/" + to_string(rate);
 	auto r = SendRequest(req, {}, {});
 	if (r)
@@ -916,7 +924,8 @@ DownloadManager::UploadScore(HighScore* hs,
 		Locator::getLogger()->warn(
 		  "Attempted to upload score when not logged in (scorekey: \"{}\")",
 		  hs->GetScoreKey().c_str());
-		callback();
+		if (callback)
+			callback();
 		return;
 	}
 
@@ -984,7 +993,8 @@ DownloadManager::UploadScore(HighScore* hs,
 			  "response body: \"{}\")",
 			  rapidjson::GetParseError_En(d.GetParseError()),
 			  req.result.c_str());
-			callback();
+			if (callback)
+				callback();
 			return;
 		}
 		if (d.HasMember("errors")) {
@@ -1047,7 +1057,8 @@ DownloadManager::UploadScore(HighScore* hs,
 				  response_code,
 				  req.result.c_str());
 			}
-			callback();
+			if (callback)
+				callback();
 			return;
 		}
 		if (d.HasMember("data") && d["data"].IsObject() &&
@@ -1083,11 +1094,13 @@ DownloadManager::UploadScore(HighScore* hs,
 			  response_code,
 			  req.result.c_str());
 		}
-		callback();
+		if (callback)
+			callback();
 	};
 	HTTPRequest* req = new HTTPRequest(
 	  curlHandle, done, nullptr, [callback](HTTPRequest& req) {
-		  callback();
+			if (callback)
+			  callback();
 	  });
 	SetCURLResultsString(curlHandle, &(req->result));
 	AddHttpRequestHandle(req->handle);
@@ -1402,7 +1415,8 @@ DownloadManager::SendRequestToURL(
 									[req, afterDone](bool logged) {
 										if (logged) {
 											auto r = req;
-											afterDone(r);
+											if (afterDone)
+												afterDone(r);
 										}
 									});
 			};
@@ -1423,7 +1437,8 @@ DownloadManager::SendRequestToURL(
 				}
 			}
 		}
-		afterDone(req);
+		if (afterDone)
+			afterDone(req);
 	};
 	CURL* curlHandle = initCURLHandle(withBearer);
 	SetCURLURL(curlHandle, url);
@@ -2968,8 +2983,8 @@ class LunaDownloadablePack : public Luna<DownloadablePack>
 		if (p->downloading) {
 			// using GetDownload on a download started by a Mirror isn't keyed
 			// by the Mirror url have to check both
-			auto u = p->url;
-			auto m = p->mirror;
+			auto u = encodeDownloadUrl(p->url);
+			auto m = encodeDownloadUrl(p->mirror);
 			if (DLMAN->downloads.count(u))
 				DLMAN->downloads[u]->PushSelf(L);
 			else if (DLMAN->downloads.count(m))
