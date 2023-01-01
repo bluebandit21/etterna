@@ -112,7 +112,11 @@ namespace Core::Platform {
     }
 
     std::string getLanguage(){
-        return NSLocale.currentLocale.languageCode.UTF8String;
+		if(@available(macOS 10.12.0, *)){
+			return NSLocale.currentLocale.languageCode.UTF8String;
+		} else {
+			return [[NSLocale.currentLocale objectForKey:NSLocaleLanguageCode] UTF8String];
+		}
     }
 
     bool openWebsite(const std::string& url){
