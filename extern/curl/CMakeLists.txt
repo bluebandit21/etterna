@@ -44,7 +44,6 @@ include(Utilities)
 include(Macros)
 include(CMakeDependentOption)
 include(CheckCCompilerFlag)
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.10" CACHE STRING "" FORCE) # Generate cURL usable by pre-High Sierra macOS versions
 project(CURL C)
 
 file(STRINGS ${CURL_SOURCE_DIR}/include/curl/curlver.h CURL_VERSION_H_CONTENTS REGEX "#define LIBCURL_VERSION( |_NUM )")
