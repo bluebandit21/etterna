@@ -888,6 +888,8 @@ ${SIZEOF_TIME_T_CODE}
 /* Define if you want to enable c-ares support */
 #cmakedefine USE_ARES 1
 
+#cmakedefine USE_HEADERS_API 1
+
 /* Define if you want to enable POSIX threaded DNS lookup */
 #cmakedefine USE_THREADS_POSIX 1
 
