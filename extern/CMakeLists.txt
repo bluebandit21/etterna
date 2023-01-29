@@ -18,6 +18,7 @@ set(BUILD_CURL_EXE OFF CACHE BOOL "" FORCE)    # Tell curl not to build standalo
 set(BUILD_TESTING OFF CACHE BOOL "" FORCE)     # Disable curl testing
 set(CURL_USE_OPENSSL ON CACHE BOOL "" FORCE)  # Require OpenSSL
 set(HTTP_ONLY ON CACHE BOOL "" FORCE)          # Disable all protocols except HTTP/S
+set(USE_HEADERS_API ON CACHE BOOL "" FORCE)  #Allow usage of curl_easy_header
 add_definitions(-DUSE_HEADERS_API)            #Allow usage of curl_easy_header
 add_subdirectory(curl)
 
