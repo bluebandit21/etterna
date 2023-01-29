@@ -56,6 +56,8 @@ if(NOT WIN32)
     set_target_properties(Etterna PROPERTIES RUNTIME_OUTPUT_DIRECTORY "$<1:${PROJECT_SOURCE_DIR}>")
 endif()
 
+add_definitions(-DUSE_HEADERS_API)            #Allow usage of curl_easy_header
+
 ## Includes
 target_include_directories(Etterna PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)   # Add gen files include search dirs
 target_include_directories(Etterna PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)          # Add src/ to include search dirs
