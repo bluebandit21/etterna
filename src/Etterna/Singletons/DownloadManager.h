@@ -12,6 +12,7 @@
 #include "curl/curl.h"
 
 #include <deque>
+#include <unordered_map>
 
 class ScoreGoal;
 class DownloadablePack;
