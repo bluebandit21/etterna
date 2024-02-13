@@ -1,0 +1,9 @@
+Enabled hardened runtime, 
+codesign --deep --sign "7XUP5SF9XB" --force Etterna-debug.app
+ # codesign --verify --deep --strict --verbose=2
+ ##https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/customizing_the_notarization_workflow#3087734
+##https://help.apple.com/xcode/mac/current/#/devf87a2ac8f
+##https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/customizing_the_notarization_workflow#3087720
+
+# Useful: https://eclecticlight.co/taccy-signet-precize-alifix-utiutility-alisma/
+https://developer.apple.com/forums/thread/706442

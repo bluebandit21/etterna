@@ -3,7 +3,11 @@
 #include <array>
 #include <vector>
 #include <algorithm>
-#include <xmmintrin.h>
+#ifndef __aarch64__
+	#include <xmmintrin.h>
+#else
+	#include "sse2neon.h" //We're on ARM64
+#endif
 #include <numeric>
 #include <cstring>
 

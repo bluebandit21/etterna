@@ -20,7 +20,11 @@
 #include "Etterna/Models/NoteData/NoteDataUtil.h"
 
 #ifndef _WIN32
-#include <cpuid.h>
+	#ifdef __aarch64__
+		//TODO
+	#else
+		#include <cpuid.h>
+	#endif
 #endif
 
 #ifdef _WIN32
