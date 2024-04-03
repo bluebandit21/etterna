@@ -474,7 +474,7 @@ void LowLevelWindow_MacOSX::ShutDownFullScreen()
 
 int LowLevelWindow_MacOSX::ChangeDisplayMode( const VideoModeParams& p )
 {	
-	CFDictionaryRef mode = NULL;
+	CGDisplayModeRef mode = NULL;
 	CFDictionaryRef newMode;
 	CGDisplayErr err;
 	
@@ -485,7 +485,7 @@ int LowLevelWindow_MacOSX::ChangeDisplayMode( const VideoModeParams& p )
 			return err;
 		// Only hide the first time we go to full screen.
 		CGDisplayHideCursor( kCGDirectMainDisplay );	
-		mode = CGDisplayCurrentMode( kCGDirectMainDisplay );
+		mode = CGDisplayCopyDisplayMode( kCGDirectMainDisplay );
 	}
 	
 	if( p.rate == REFRESH_DEFAULT )
@@ -527,14 +527,16 @@ static size_t GetDisplayBitsPerPixel( CGDirectDisplayID displayId )
 
 }
 
-void LowLevelWindow_MacOSX::SetActualParamsFromMode( CFDictionaryRef mode )
+void LowLevelWindow_MacOSX::SetActualParamsFromMode( CGDisplayModeRef mode )
 {
-	SInt32 rate;
-	bool ret = CFNumberGetValue( (CFNumberRef)CFDictionaryGetValue(mode, CFSTR("RefreshRate")),
-				     kCFNumberSInt32Type, &rate );
 	
-	if( !ret || rate == 0)
+	double rate = CGDisplayModeGetRefreshRate(mode);
+	
+	if(rate == 0){
+		Locator::getLogger()->warn("LowLevelWindow_MacOSX::SetActualParamsFromMode: Unable to query display refresh rate!");
 		rate = 60;
+	}
+		
 	m_CurrentParams.rate = rate;
 
 	if( !m_CurrentParams.windowed )

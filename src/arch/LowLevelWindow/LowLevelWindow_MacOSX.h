@@ -4,6 +4,7 @@
 #include "LowLevelWindow.h"
 #include "RageUtil/Graphics/RageDisplay.h"
 #include <objc/objc.h>
+#include <CoreGraphics/CGDirectDisplay.h>
 
 typedef const struct __CFDictionary* CFDictionaryRef;
 typedef uint32_t CGDirectDisplayID;
@@ -15,7 +16,7 @@ class LowLevelWindow_MacOSX : public LowLevelWindow
 	id m_WindowDelegate;
 	id m_Context;
 	id m_BGContext;
-	CFDictionaryRef m_CurrentDisplayMode;
+	CGDisplayModeRef m_CurrentDisplayMode;
 	CGDirectDisplayID m_DisplayID;
 
   public:
@@ -42,7 +43,7 @@ class LowLevelWindow_MacOSX : public LowLevelWindow
   private:
 	void ShutDownFullScreen();
 	int ChangeDisplayMode(const VideoModeParams& p);
-	void SetActualParamsFromMode(CFDictionaryRef mode);
+	void SetActualParamsFromMode(CGDisplayModeRef mode);
 };
 
 #ifdef ARCH_LOW_LEVEL_WINDOW
