@@ -6,8 +6,8 @@
 #include <objc/objc.h>
 #include <CoreGraphics/CGDirectDisplay.h>
 
-typedef const struct __CFDictionary* CFDictionaryRef;
-typedef uint32_t CGDirectDisplayID;
+//typedef const struct __CFDictionary* CFDictionaryRef;
+//typedef uint32_t CGDirectDisplayID;
 
 class LowLevelWindow_MacOSX : public LowLevelWindow
 {

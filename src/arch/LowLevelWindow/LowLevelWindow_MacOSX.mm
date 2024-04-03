@@ -301,7 +301,7 @@ LowLevelWindow_MacOSX::LowLevelWindow_MacOSX() : m_Context(nil), m_BGContext(nil
 	[m_WindowDelegate performSelectorOnMainThread:@selector(setupWindow) withObject:nil waitUntilDone:YES];
 	
 	m_CurrentParams.windowed = true; // We are essentially windowed to begin with.
-	SetActualParamsFromMode( CGDisplayCurrentMode(kCGDirectMainDisplay) );
+	SetActualParamsFromMode( CGDisplayCopyDisplayMode(kCGDirectMainDisplay) );
 	GameLoop::setGameFocused([NSApp isActive]);
 }
 
@@ -390,7 +390,7 @@ std::string LowLevelWindow_MacOSX::TryVideoMode( const VideoModeParams& p, bool&
 		});
 		[m_Context makeCurrentContext];
 		m_CurrentParams.windowed = true;
-		SetActualParamsFromMode( CGDisplayCurrentMode(kCGDirectMainDisplay) );
+		SetActualParamsFromMode( CGDisplayCopyDisplayMode(kCGDirectMainDisplay) );
 		m_CurrentParams.vsync = p.vsync; // hack
 
 		return std::string();
@@ -460,7 +460,7 @@ void LowLevelWindow_MacOSX::ShutDownFullScreen()
 	[m_Context clearDrawable];
 	[m_BGContext clearDrawable];
 	
-	CGDisplayErr err = CGDisplaySwitchToMode( kCGDirectMainDisplay, m_CurrentDisplayMode );
+	CGDisplayErr err = CGDisplaySetDisplayMode( kCGDirectMainDisplay, m_CurrentDisplayMode, NULL );
 	
 	ASSERT( err == kCGErrorSuccess );
 	CGDisplayShowCursor( kCGDirectMainDisplay );
@@ -472,10 +472,17 @@ void LowLevelWindow_MacOSX::ShutDownFullScreen()
 	m_CurrentParams.windowed = true;
 }
 
+//Replacement for CGDisplayBestModeForParameters( kCGDirectMainDisplay, p.bpp, p.width, p.height, NULL );
+CGDisplayModeRef getBestModeForParameters(CGDirectDisplayID display, const VideoModeParams& p ){
+	//TODO: Actually do this function :)
+	return CGDisplayCopyDisplayMode( kCGDirectMainDisplay );
+}
+
+
 int LowLevelWindow_MacOSX::ChangeDisplayMode( const VideoModeParams& p )
 {	
 	CGDisplayModeRef mode = NULL;
-	CFDictionaryRef newMode;
+	CGDisplayModeRef newMode;
 	CGDisplayErr err;
 	
 	if( !m_CurrentDisplayMode )
@@ -488,17 +495,15 @@ int LowLevelWindow_MacOSX::ChangeDisplayMode( const VideoModeParams& p )
 		mode = CGDisplayCopyDisplayMode( kCGDirectMainDisplay );
 	}
 	
-	if( p.rate == REFRESH_DEFAULT )
-		newMode = CGDisplayBestModeForParameters( kCGDirectMainDisplay, p.bpp, p.width, p.height, NULL );
-	else
-		newMode = CGDisplayBestModeForParametersAndRefreshRate( kCGDirectMainDisplay, p.bpp,
-									p.width, p.height, p.rate, NULL );
+	newMode = getBestModeForParameters(kCGDirectMainDisplay, p);
 	
 	
-	err = CGDisplaySwitchToMode( kCGDirectMainDisplay, newMode );
+	err = CGDisplaySetDisplayMode( kCGDirectMainDisplay, newMode, NULL );
 	
 	if( err != kCGErrorSuccess )
-		return err; // We don't own mode, don't release it.
+		// We own mode, release it.
+		//TODO: Handle all this stupid mode reference counting stuff
+		return err;
 	
 	if( !m_CurrentDisplayMode )
 		m_CurrentDisplayMode = mode;
@@ -582,39 +587,39 @@ static double GetDoubleValue( CFTypeRef r )
 	return ret;
 }
 
-static DisplayMode ConvertDisplayMode( CFDictionaryRef dict )
+static DisplayMode ConvertDisplayMode( CGDisplayModeRef currentMode )
 {
-	int width = GetIntValue( CFDictionaryGetValue(dict, kCGDisplayWidth) );
-	int height = GetIntValue( CFDictionaryGetValue(dict, kCGDisplayHeight) );
-	double rate = GetDoubleValue( CFDictionaryGetValue(dict, kCGDisplayRefreshRate) );
+	int width = CGDisplayModeGetWidth(currentMode); //TODO: size_t?
+	int height =CGDisplayModeGetHeight(currentMode); //TODO: size_t?
+	double rate = CGDisplayModeGetRefreshRate(currentMode);
 
 	return { static_cast<unsigned int> (width), static_cast<unsigned int> (height), rate};
 }
 
 void LowLevelWindow_MacOSX::GetDisplaySpecs( DisplaySpecs &specs ) const
 {
-	CFArrayRef modes = CGDisplayAvailableModes( kCGDirectMainDisplay );
+	CFArrayRef modes = CGDisplayCopyAllDisplayModes( kCGDirectMainDisplay , NULL);
 	ASSERT( modes );
 	const CFIndex count = CFArrayGetCount( modes );
 	
 	std::set<DisplayMode> available;
-	CFDictionaryRef currentModeDict = CGDisplayCurrentMode( kCGDirectMainDisplay );
-	DisplayMode current = ConvertDisplayMode( currentModeDict );
+	CGDisplayModeRef currentMode = CGDisplayCopyDisplayMode( kCGDirectMainDisplay );
+	DisplayMode current = ConvertDisplayMode( currentMode );
 	
 	for( CFIndex i = 0; i < count; ++i )
 	{
-		CFDictionaryRef dict = (CFDictionaryRef)CFArrayGetValueAtIndex( modes, i );
-		CFTypeRef safe = CFDictionaryGetValue( dict, kCGDisplayModeIsSafeForHardware );
+		CGDisplayModeRef modeRef = (CGDisplayModeRef)CFArrayGetValueAtIndex( modes, i );
+		//All return modes are safe for hardware? //TODO: Check
+		//CFTypeRef safe = CFDictionaryGetValue( dict, kCGDisplayModeIsSafeForHardware );
 		
-		DisplayMode mode = ConvertDisplayMode( dict );
+		DisplayMode mode = ConvertDisplayMode( modeRef );
 
 		if( !mode.width || !mode.height )
 			continue;
-		if( safe && !GetBoolValue( safe ) )
-			continue;
 		available.insert( mode );
 	}
-	// Do not release modes! We don't own them here.
+	// We own currentMode and modes; release them!
+	//TODO: Handle
 	RectI bounds( 0, 0, current.width, current.height );
 	DisplaySpec s( "", "Fullscreen", available, current, bounds );
 	specs.insert( s );
