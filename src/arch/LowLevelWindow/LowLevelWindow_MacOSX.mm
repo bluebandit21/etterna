@@ -474,6 +474,23 @@ void LowLevelWindow_MacOSX::ShutDownFullScreen()
 
 //Replacement for CGDisplayBestModeForParameters( kCGDirectMainDisplay, p.bpp, p.width, p.height, NULL );
 CGDisplayModeRef getBestModeForParameters(CGDirectDisplayID display, const VideoModeParams& p ){
+	CFArrayRef modes = CGDisplayCopyAllDisplayModes(display, NULL);
+	const CFIndex count = CFArrayGetCount( modes );
+	
+	Locator::getLogger()->info("Enumerating display modes:");
+	
+	for( CFIndex i = 0; i < count; ++i )
+	{
+		CGDisplayModeRef modeRef = (CGDisplayModeRef)CFArrayGetValueAtIndex( modes, i );
+
+		int width=CGDisplayModeGetWidth(modeRef);
+		int height=CGDisplayModeGetHeight(modeRef);
+		double rate=CGDisplayModeGetRefreshRate(modeRef);
+		Locator::getLogger()->info("\tFound: ({},{},{})", width, height, rate);
+	}
+	
+	Locator::getLogger()->warn("LowLevelWindow_MacOSX::SetActualParamsFromMode: Unable to query display refresh rate!");
+	
 	//TODO: Actually do this function :)
 	return CGDisplayCopyDisplayMode( kCGDirectMainDisplay );
 }
@@ -606,6 +623,7 @@ void LowLevelWindow_MacOSX::GetDisplaySpecs( DisplaySpecs &specs ) const
 	CGDisplayModeRef currentMode = CGDisplayCopyDisplayMode( kCGDirectMainDisplay );
 	DisplayMode current = ConvertDisplayMode( currentMode );
 	
+	Locator::getLogger()->info("Enumerating display modes:");
 	for( CFIndex i = 0; i < count; ++i )
 	{
 		CGDisplayModeRef modeRef = (CGDisplayModeRef)CFArrayGetValueAtIndex( modes, i );
@@ -614,6 +632,7 @@ void LowLevelWindow_MacOSX::GetDisplaySpecs( DisplaySpecs &specs ) const
 		
 		DisplayMode mode = ConvertDisplayMode( modeRef );
 
+		Locator::getLogger()->info("\tFound: ({},{},{})", mode.width, mode.height, mode.refreshRate);
 		if( !mode.width || !mode.height )
 			continue;
 		available.insert( mode );
