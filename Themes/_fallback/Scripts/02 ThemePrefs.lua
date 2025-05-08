@@ -172,10 +172,10 @@ end
 function getScreenOptionsInputLines()
     if HOOKS.GetArchName():upper():find("^WINDOWS") ~= nil then
         -- windows
-        return "1,2,3,AH,AS,5,6,8,7,WindowsKey,KeyboardLayout"
+        return "1,2,3,AH,AS,5,6,8,7,DS,WindowsKey,KeyboardLayout"
     else
         -- mac and linux
-        return "1,2,3,AH,AS,5,6,8,7"
+        return "1,2,3,AH,AS,5,6,8,7,DS"
     end
 end
 
@@ -187,6 +187,7 @@ function PracticeMode()
 		SelectType = "SelectOne",
 		OneChoiceForAllPlayers = false,
 		ExportOnChange = true,
+        ExportOnCancel = true,
 		Choices = {THEME:GetString("OptionNames", "Off"), THEME:GetString("OptionNames", "On")},
 		LoadSelections = function(self, list, pn)
 			local pref = GAMESTATE:IsPracticeMode()
@@ -213,6 +214,7 @@ function JudgeDifficulty()
 		SelectType = "SelectOne",
 		OneChoiceForAllPlayers = false,
 		ExportOnChange = true,
+        ExportOnCancel = false,
 		Choices = {"4", "5", "6", "7", "8", THEME:GetString("OptionNames", "Justice")},
 		LoadSelections = function(self, list, pn)
 			local td = math.max(GetTimingDifficulty() - 3, 1)
@@ -256,6 +258,7 @@ function RateList()
         SelectType = "SelectOne",
         OneChoiceForAllPlayers = false,
         ExportOnChange = true,
+        ExportOnCancel = true,
         Choices = ratelist,
         LoadSelections = function(self, list, pn)
             local rateindex = 1
@@ -277,6 +280,8 @@ function RateList()
                     GAMESTATE:GetSongOptionsObject("ModsLevel_Preferred"):MusicRate(r)
                     GAMESTATE:GetSongOptionsObject("ModsLevel_Song"):MusicRate(r)
                     GAMESTATE:GetSongOptionsObject("ModsLevel_Current"):MusicRate(r)
+                    MESSAGEMAN:Broadcast("RateListOptionSaved", {rate = getCurRateValue()})
+                    MESSAGEMAN:Broadcast("CurrentRateChanged")
                     break
                 end
             end
@@ -293,7 +298,7 @@ function InputDebounceTime()
     local delaylist = {}
     do
 		-- in milliseconds, 100 is pretty egregious
-        local start = -0.100
+        local start = 0
         local upper = 0.100
         local increment = 0.001
         while start <= upper do
@@ -309,6 +314,7 @@ function InputDebounceTime()
         SelectType = "SelectOne",
         OneChoiceForAllPlayers = false,
         ExportOnChange = true,
+        ExportOnCancel = true,
         Choices = delaylist,
         LoadSelections = function(self, list, pn)
             local rateindex = 1
@@ -340,6 +346,59 @@ function InputDebounceTime()
     return t
 end
 
+function ScrollDebounceTime() -- Modified input debounce time.
+    local delaylist = {}
+    do
+		-- in milliseconds, 100 is pretty egregious
+		-- ^^^ true.. But why not let people do what they want
+        local start = 0
+        local upper = 0.100
+        local increment = 0.001
+        while start <= upper do
+			-- these rounds should force it to be milliseconds only
+            delaylist[#delaylist+1] = tostring(notShit.round(start * 1000)) .. "ms"
+            start = notShit.round(start + increment, 3)
+        end
+    end
+
+    local t = {
+        Name = "ScrollDebounceTime",
+        LayoutType = "ShowAllInRow",
+        SelectType = "SelectOne",
+        OneChoiceForAllPlayers = false,
+        ExportOnChange = true,
+        ExportOnCancel = true,
+        Choices = delaylist,
+        LoadSelections = function(self, list, pn)
+            local rateindex = 1
+            local rate = notShit.round(PREFSMAN:GetPreference("ScrollDebounceTime"), 4)
+            local acceptable_delta = 0.0005
+            for i = 1, #delaylist do
+                local r = tonumber(delaylist[i]:sub(1, -3)) / 1000
+                if r == rate or (rate - acceptable_delta <= r and rate + acceptable_delta >= r) then
+                    rateindex = i
+                    break
+                end
+            end
+            list[rateindex] = true
+        end,
+        SaveSelections = function(self, list, pn)
+            for i, v in ipairs(list) do
+                if v == true then
+                    local r = notShit.round(tonumber(delaylist[i]:sub(1, -3)) / 1000, 3)
+					PREFSMAN:SetPreference("ScrollDebounceTime", r)
+                    break
+                end
+            end
+        end,
+		NotifyOfSelection = function(self, pn, choice)
+			MESSAGEMAN:Broadcast("ScrollDebounceOptionChanged", {value = PREFSMAN:GetPreference("ScrollDebounceTime")})
+		end
+    }
+    setmetatable(t, t)
+    return t
+end
+
 function FrameLimitGlobal()
     local delaylist = {"0","30","40","50","60","70","80","90"}
     do
@@ -365,6 +424,7 @@ function FrameLimitGlobal()
         SelectType = "SelectOne",
         OneChoiceForAllPlayers = false,
         ExportOnChange = true,
+        ExportOnCancel = true,
         Choices = delaylist,
         LoadSelections = function(self, list, pn)
             local rateindex = 1
@@ -427,7 +487,8 @@ function FrameLimitGameplay()
         LayoutType = "ShowAllInRow",
         SelectType = "SelectOne",
         OneChoiceForAllPlayers = false,
-        ExportOnChange = true,
+        ExportOnChange = false,
+        ExportOnCancel = true,
         Choices = delaylist,
         LoadSelections = function(self, list, pn)
             local rateindex = 1
@@ -486,6 +547,7 @@ function VisualDelaySeconds()
         SelectType = "SelectOne",
         OneChoiceForAllPlayers = false,
         ExportOnChange = true,
+        ExportOnCancel = true,
         Choices = delaylist,
         LoadSelections = function(self, list, pn)
             local rateindex = 1
@@ -537,6 +599,7 @@ function GlobalOffsetSeconds()
         SelectType = "SelectOne",
         OneChoiceForAllPlayers = false,
         ExportOnChange = true,
+        ExportOnCancel = true,
         Choices = numlist,
         LoadSelections = function(self, list, pn)
             local rateindex = 1
@@ -585,6 +648,7 @@ function GranularHiddenOffset()
         SelectType = "SelectOne",
         OneChoiceForAllPlayers = false,
         ExportOnChange = true,
+        ExportOnCancel = true,
         Choices = HOlist,
 	LoadSelections = function(self, list, pn)
 		local HOindex = 1
@@ -632,6 +696,7 @@ function GranularSuddenOffset()
         SelectType = "SelectOne",
         OneChoiceForAllPlayers = false,
         ExportOnChange = true,
+        ExportOnCancel = true,
         Choices = SOlist,
 	LoadSelections = function(self, list, pn)
 		local SOindex = 1
@@ -681,6 +746,7 @@ function SoundVolumeControl()
         SelectType = "SelectOne",
         OneChoiceForAllPlayers = true,
         ExportOnChange = true,
+        ExportOnCancel = false,
         Choices = numlist,
         LoadSelections = function(self, list, pn)
             local rateindex = 1
@@ -723,6 +789,7 @@ function DisableWindowsKeyInGameplay()
 		SelectType = "SelectOne",
 		OneChoiceForAllPlayers = false,
 		ExportOnChange = true,
+        ExportOnCancel = false,
 		Choices = {THEME:GetString("OptionNames", "Off"), THEME:GetString("OptionNames", "On")},
 		LoadSelections = function(self, list, pn)
 			local pref = PREFSMAN:GetPreference("DisableWindowsKey")
@@ -755,6 +822,7 @@ function MaxTextureResolutionOption()
 		SelectType = "SelectOne",
 		OneChoiceForAllPlayers = false,
 		ExportOnChange = true,
+        ExportOnCancel = false,
 		Choices = numlist,
 		LoadSelections = function(self, list, pn)
 			local pref = PREFSMAN:GetPreference("MaxTextureResolution")
@@ -788,6 +856,7 @@ function FixKeyboardLayout()
 		SelectType = "SelectOne",
 		OneChoiceForAllPlayers = false,
 		ExportOnChange = true,
+        ExportOnCancel = false,
 		Choices = {THEME:GetString("OptionNames", "Off"), THEME:GetString("OptionNames", "On")},
 		LoadSelections = function(self, list, pn)
 			local pref = PREFSMAN:GetPreference("FixKeyboardLayout")
@@ -808,4 +877,3 @@ function FixKeyboardLayout()
 	setmetatable(t, t)
 	return t
 end
-

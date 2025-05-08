@@ -33,11 +33,12 @@ local translated_info = {
 	NoPacks = THEME:GetString("PacklistDisplay", "NoPacks"),
 	PackPlays = THEME:GetString("PacklistDisplay", "PackPlays"),
 	SongCount = THEME:GetString("PacklistDisplay", "SongCount"),
+	IsNSFW = THEME:GetString("PacklistDisplay", "IsNSFW"),
 }
 
 -- initialize the base pack search
 local packlist = PackList:new()
-packlist:FilterAndSearch("", {}, numpacks)
+packlist:FilterAndSearch("", {}, true, numpacks)
 
 local o = Def.ActorFrame {
 	Name = "PacklistDisplay",
@@ -62,7 +63,7 @@ local o = Def.ActorFrame {
 		self:queuecommand("PackTableRefresh")
 	end,
 	InvokePackSearchMessageCommand = function(self, params)
-		packlist:FilterAndSearch(params.name, params.tags, numpacks)
+		packlist:FilterAndSearch(params.name, params.tags, params.tagsMatchAny, numpacks)
 		self:queuecommand("Update")
 	end,
 	PackTableRefreshCommand = function(self)
@@ -120,6 +121,18 @@ local o = Def.ActorFrame {
 			self:halign(0)
 			self:settext(translated_info["Name"])
 		end,
+		MouseOverCommand = function(self)
+			self:diffusealpha(hoverAlpha)
+		end,
+		MouseOutCommand = function(self)
+			self:diffusealpha(1)
+		end,
+		MouseDownCommand = function(self, params)
+			if params.event == "DeviceButton_left mouse button" then
+				packlist:SortByName()
+				self:GetParent():queuecommand("Update")
+			end
+		end
 	},
 	UIElements.TextToolTip(1, 1, "Common Normal") .. {
 		Name = "AverageDiffHeader",
@@ -129,6 +142,18 @@ local o = Def.ActorFrame {
 			self:halign(1)
 			self:settext(translated_info["AverageDiff"])
 		end,
+		MouseOverCommand = function(self)
+			self:diffusealpha(hoverAlpha)
+		end,
+		MouseOutCommand = function(self)
+			self:diffusealpha(1)
+		end,
+		MouseDownCommand = function(self, params)
+			if params.event == "DeviceButton_left mouse button" then
+				packlist:SortByOverall()
+				self:GetParent():queuecommand("Update")
+			end
+		end
 	},
 	UIElements.TextToolTip(1, 1, "Common Normal") .. {
 		Name = "SizeHeader",
@@ -138,6 +163,18 @@ local o = Def.ActorFrame {
 			self:halign(1)
 			self:settext(translated_info["Size"])
 		end,
+		MouseOverCommand = function(self)
+			self:diffusealpha(hoverAlpha)
+		end,
+		MouseOutCommand = function(self)
+			self:diffusealpha(1)
+		end,
+		MouseDownCommand = function(self, params)
+			if params.event == "DeviceButton_left mouse button" then
+				packlist:SortBySize()
+				self:GetParent():queuecommand("Update")
+			end
+		end
 	},
 	UIElements.TextToolTip(1, 1, "Common Normal") .. {
 		Name = "PlaysHeader",
@@ -147,6 +184,18 @@ local o = Def.ActorFrame {
 			self:halign(1)
 			self:settext(translated_info["PackPlays"])
 		end,
+		MouseOverCommand = function(self)
+			self:diffusealpha(hoverAlpha)
+		end,
+		MouseOutCommand = function(self)
+			self:diffusealpha(1)
+		end,
+		MouseDownCommand = function(self, params)
+			if params.event == "DeviceButton_left mouse button" then
+				packlist:SortByPlays()
+				self:GetParent():queuecommand("Update")
+			end
+		end
 	},
 	UIElements.TextToolTip(1, 1, "Common Normal") .. {
 		Name = "SongCountHeader",
@@ -156,6 +205,18 @@ local o = Def.ActorFrame {
 			self:halign(1)
 			self:settext(translated_info["SongCount"])
 		end,
+		MouseOverCommand = function(self)
+			self:diffusealpha(hoverAlpha)
+		end,
+		MouseOutCommand = function(self)
+			self:diffusealpha(1)
+		end,
+		MouseDownCommand = function(self, params)
+			if params.event == "DeviceButton_left mouse button" then
+				packlist:SortBySongs()
+				self:GetParent():queuecommand("Update")
+			end
+		end
 	},
 	LoadFont("Common Large") .. {
 		Name = "AwaitingOrNoResults",
@@ -251,8 +312,7 @@ local function makePackDisplay(i)
 			end,
 			MouseDownCommand = function(self, params)
 				if params.event == "DeviceButton_left mouse button" then
-					local urlstringyo = "https://etternaonline.com/pack/" .. packinfo:GetID() -- not correct value for site id
-					GAMESTATE:ApplyGameCommand("urlnoexit," .. urlstringyo)
+					DLMAN:ShowPackPage(packinfo:GetID())
 				end
 			end
 		},
@@ -314,14 +374,19 @@ local function makePackDisplay(i)
 			end,
 			MouseOverCommand = function(self)
 				self:diffusealpha(hoverAlpha)
+				if packinfo:IsNSFW() and not installed then
+					TOOLTIP:SetText(translated_info["IsNSFW"])
+					TOOLTIP:Show()
+				end
 			end,
 			MouseOutCommand = function(self)
 				self:diffusealpha(1)
+				TOOLTIP:Hide()
 			end,
 			MouseDownCommand = function(self, params)
 				if params.event == "DeviceButton_left mouse button" then
 					if packinfo:GetSize() > 2000000000 then
-						GAMESTATE:ApplyGameCommand("urlnoexit," .. packinfo:GetURL())
+						packinfo:DownloadExternally()
 					else
 						packinfo:DownloadAndInstall(false)
 					end

@@ -204,7 +204,7 @@ class GameState
 	bool m_bLoadingNextSong;
 	[[nodiscard]] auto GetLoadingCourseSongIndex() const -> int;
 
-	static auto GetEtternaVersion() -> std::string { return "0.73.0"; }
+	static auto GetEtternaVersion() -> std::string { return "0.74.4"; }
 
 	/* is this the best place for this? it's not exactly a pref, and we
 	 * shouldn't be copying and pasting these values everywhere as needed j1-j4
@@ -319,6 +319,8 @@ class GameState
 
 	// A "persistent" way to know if we restarted gameplay (hack)
 	bool m_bRestartedGameplay;
+
+	std::string ProgramHash{};
 
 	// Discord Rich Presence
 	void discordInit();

@@ -85,6 +85,8 @@ local translations = {
 	NoPacks = THEME:GetString("PackDownloader", "NoPacks"),
     TagExplain = THEME:GetString("PackDownloader", "TagExplain"),
     Apply = THEME:GetString("PackDownloader", "Apply"),
+    Reset = THEME:GetString("PackDownloader", "Reset"),
+    NSFWPack = THEME:GetString("PackDownloader", "NSFWPack"),
 
 }
 
@@ -209,11 +211,12 @@ local function downloadsList()
     local downloaderframe = nil
     local searchstring = ""
     local selectedTags = {}
+    local tagsMatchAny = true
 
     -- fallback behavior: this is a PackList
     -- it has internal properties we will use to our advantage
     local pl = PackList:new()
-    pl:FilterAndSearch("", {}, itemCount)
+    pl:FilterAndSearch("", {}, tagsMatchAny, itemCount)
     local downloadingPacks = DLMAN:GetDownloadingPacks()
     local queuedPacks = DLMAN:GetQueuedPacks()
     local downloadingPacksByName = {}
@@ -448,15 +451,23 @@ local function downloadsList()
                     self:x(actuals.NameColumnLeftGap)
                     self:zoom(nameTextSize)
                     self:maxwidth((actuals.MSDColumnLeftGap - actuals.NameColumnLeftGap - actuals.MSDWidth / 2) / nameTextSize - textZoomFudge)
-                    registerActorToColorConfigElement(self, "main", "SecondaryText")
                     self.alphaDeterminingFunction = function(self)
                         if isOver(self) and pack ~= nil then self:diffusealpha(buttonHoverAlpha) else self:diffusealpha(1) end
                     end
                 end,
+                ColorConfigUpdatedMessageCommand = function(self)
+                    self:playcommand("SetPack")
+                end,
                 SetPackCommand = function(self)
                     if pack ~= nil then
+                        if not pack:IsNSFW() then
+                            self:diffuse(COLORS:getColor("main", "SecondaryText"))
+                        else
+                            self:diffuse(COLORS:getColor("downloader", "NSFWPack"))
+                        end
                         self:settext(pack:GetName())
                     elseif bundle ~= nil then
+                        self:diffuse(COLORS:getColor("main", "SecondaryText"))
                         local expanded = i % 2 == 0 and " "..translations["Expanded"] or ""
                         self:settext(translations[bundleTypes[index]] .. expanded)
                     end
@@ -465,16 +476,22 @@ local function downloadsList()
                 MouseDownCommand = function(self, params)
                     if self:IsInvisible() then return end
                     if pack ~= nil then
-                        local urlstring = "https://etternaonline.com/pack/" .. pack:GetID()
-					    GAMESTATE:ApplyGameCommand("urlnoexit," .. urlstring)
+                        DLMAN:ShowPackPage(pack:GetID())
                     end
                 end,
                 MouseOverCommand = function(self)
                     if self:IsInvisible() then return end
+                    if pack ~= nil then
+                        if pack:IsNSFW() then
+                            TOOLTIP:SetText(translations["NSFWPack"])
+                            TOOLTIP:Show()
+                        end
+                    end
                     self:alphaDeterminingFunction()
                 end,
                 MouseOutCommand = function(self)
                     if self:IsInvisible() then return end
+                    TOOLTIP:Hide()
                     self:alphaDeterminingFunction()
                 end,
             },
@@ -566,7 +583,11 @@ local function downloadsList()
                         if downloadingPacksByName[name] ~= nil or queuedPacksByName[name] ~= nil or SONGMAN:DoesSongGroupExist(name) then
                             return
                         end
-                        pack:DownloadAndInstall(false)
+                        if pack:GetSize() > 2000000000 then
+                            pack:DownloadExternally()
+                        else
+                            pack:DownloadAndInstall(false)
+                        end
                     elseif bundle ~= nil then
                         local name = bundleTypes[index]:lower()..(i%2==0 and "-expanded" or "")
                         DLMAN:DownloadCoreBundle(name)
@@ -876,11 +897,18 @@ local function downloadsList()
             self:playcommand("UpdateItemList")
         end,
         InvokeSearchCommand = function(self)
+            local function unbundleize(bundlestr)
+                local bundleWord = "Bundle: "
+                if bundlestr:find(bundleWord) ~= nil then
+                    bundlestr = bundlestr:sub(#bundleWord+1):lower()
+                end
+                return bundlestr
+            end
             local tags = {}
             for k,v in pairs(selectedTags) do
-                tags[#tags+1] = k
+                tags[#tags+1] = unbundleize(k)
             end
-            pl:FilterAndSearch(searchstring, tags, itemCount)
+            pl:FilterAndSearch(searchstring, tags, tagsMatchAny, itemCount)
             self:playcommand("UpdateItemList")
         end,
         UpdateItemListCommand = function(self)
@@ -967,6 +995,7 @@ local function downloadsList()
             ClickCommand = function(self, params)
                 if self:IsInvisible() then return end
                 if params.update ~= "OnMouseDown" then return end
+                pl:SortByName()
                 self:GetParent():playcommand("UpdateItemList")
             end,
             RolloverUpdateCommand = function(self, params)
@@ -997,6 +1026,7 @@ local function downloadsList()
             ClickCommand = function(self, params)
                 if self:IsInvisible() then return end
                 if params.update ~= "OnMouseDown" then return end
+                pl:SortByOverall()
                 self:GetParent():playcommand("UpdateItemList")
             end,
             RolloverUpdateCommand = function(self, params)
@@ -1027,6 +1057,7 @@ local function downloadsList()
             ClickCommand = function(self, params)
                 if self:IsInvisible() then return end
                 if params.update ~= "OnMouseDown" then return end
+                pl:SortBySize()
                 self:GetParent():playcommand("UpdateItemList")
             end,
             RolloverUpdateCommand = function(self, params)
@@ -1108,15 +1139,7 @@ local function downloadsList()
         local tagStartY = actuals.Height / 2
         local taglistAllottedSpace = listAllottedSpace
 
-        local alltags = DLMAN:GetPackTags()
-        local skillsetTags = table.sorted(alltags["global_skillset"])
-        local keycountTags = table.sorted(alltags["global_keyCount"], function(a,b)
-            local ax = a:sub(1, #a-1)
-            local bx = b:sub(1, #b-1)
-            return tonumber(ax) < tonumber(bx)
-        end)
-        local otherTags = table.sorted(alltags["pack_tag"])
-        local orderedTags = table.combine(keycountTags, skillsetTags, otherTags)
+        local orderedTags = {}
     
         local function movePage(n)
             local newpage = curpage + n
@@ -1130,6 +1153,27 @@ local function downloadsList()
             MESSAGEMAN:Broadcast("SetTagPage")
         end
 
+        local function loadTags()
+            local alltags = DLMAN:GetPackTags()
+            if alltags == nil or next(alltags) == nil then
+                -- do nothin
+            else
+                local skillsetTags = table.sorted(alltags["global_skillset"] or {})
+                local keycountTags = table.sorted(alltags["global_keyCount"] or {}, function(a,b)
+                    local ax = a:sub(1, #a-1)
+                    local bx = b:sub(1, #b-1)
+                    return tonumber(ax) < tonumber(bx)
+                end)
+                local otherTags = table.sorted(alltags["pack_tag"] or {})
+                local bundleTags = table.withfuncapplied(alltags["pack_bundle"] or {}, function(key,val)
+                    return key, "Bundle: " .. val:sub(1,1):upper() .. val:sub(2)
+                end)
+                orderedTags = table.combine(keycountTags, skillsetTags, otherTags, bundleTags)
+                MESSAGEMAN:Broadcast("SetTagPage")
+            end
+        end
+        loadTags()
+
         local t = Def.ActorFrame {
             Name = "TagFrame",
             InitCommand = function(self)
@@ -1140,6 +1184,9 @@ local function downloadsList()
             end,
             SetTagPageMessageCommand = function(self)
                 self:playcommand("SetTag")
+            end,
+            PackTagsRefreshedMessageCommand = function(self)
+                loadTags()
             end,
             Def.Quad {
                 Name = "Separator",
@@ -1161,11 +1208,96 @@ local function downloadsList()
                 end,
             },
             UIElements.TextButton(1, 1, "Common Normal") .. {
+                Name = "ANDORButton",
+                InitCommand = function(self)
+                    self.bg = self:GetChild("BG")
+                    self.txt = self:GetChild("Text")
+                    self:xy(
+                        actuals.Width - ((actuals.MSDColumnLeftGap - actuals.NameColumnLeftGap - actuals.MSDWidth / 2) + actuals.NameColumnLeftGap + actuals.EdgePadding)/2,
+                        actuals.Height/2 - actuals.TopLipHeight * 2 - taglistAllottedSpace / tagCount * 1.2 * 2 - (taglistAllottedSpace / tagCount * 0.1))
+                    self.bg:halign(0)
+                    self.txt:x(actuals.MSDWidth*1.2 / 2)
+                    self.txt:zoom(msdTextSize)
+                    self.txt:maxwidth(actuals.MSDWidth*1.2/msdTextSize)
+                    self.bg:zoomto(actuals.MSDWidth * 1.2, taglistAllottedSpace / tagCount * 1.2)
+
+                    registerActorToColorConfigElement(self.txt, "main", "SecondaryText")
+                    registerActorToColorConfigElement(self.bg, "main", "SecondaryBackground")
+                    self.bg:diffusealpha(1)
+                    self.alphaDeterminingFunction = function(self)
+                        if isOver(self.bg) then
+                            self:diffusealpha(buttonHoverAlpha)
+                        else
+                            self:diffusealpha(1)
+                        end
+                    end
+
+                    self.setandor = function(self)
+                        self.txt:settext(tagsMatchAny and "OR" or "AND")
+                    end
+                    self:setandor()
+                end,
+                ClickCommand = function(self, params)
+                    if self:IsInvisible() then return end
+                    if params.update ~= "OnMouseDown" then return end
+                    tagsMatchAny = not tagsMatchAny
+                    self:GetParent():GetParent():playcommand("SetTag")
+                    self:GetParent():GetParent():playcommand("InvokeSearch")
+                    self:setandor()
+                end,
+                RolloverUpdateCommand = function(self, params)
+                    if self:IsInvisible() then return end
+                    self:alphaDeterminingFunction()
+                end,
+            },
+            UIElements.TextButton(1, 1, "Common Normal") .. {
+                Name = "Reset",
+                InitCommand = function(self)
+                    self.bg = self:GetChild("BG")
+                    self.txt = self:GetChild("Text")
+                    self:xy(
+                        actuals.Width - ((actuals.MSDColumnLeftGap - actuals.NameColumnLeftGap - actuals.MSDWidth / 2) + actuals.NameColumnLeftGap + actuals.EdgePadding)/2,
+                        actuals.Height/2 - actuals.TopLipHeight * 2 - taglistAllottedSpace / tagCount * 1.25)
+                    self.bg:halign(0)
+                    self.txt:x(actuals.MSDWidth*1.2 / 2)
+                    self.txt:zoom(msdTextSize)
+                    self.txt:maxwidth(actuals.MSDWidth*1.2/msdTextSize)
+                    self.bg:zoomto(actuals.MSDWidth * 1.2, taglistAllottedSpace / tagCount * 1.2)
+
+                    registerActorToColorConfigElement(self.txt, "main", "SecondaryText")
+                    registerActorToColorConfigElement(self.bg, "main", "SecondaryBackground")
+                    self.bg:diffusealpha(1)
+                    self.alphaDeterminingFunction = function(self)
+                        if isOver(self.bg) then
+                            self:diffusealpha(buttonHoverAlpha)
+                        else
+                            self:diffusealpha(1)
+                        end
+                    end
+
+                    self.txt:settext(translations["Reset"])
+                end,
+                ClickCommand = function(self, params)
+                    if self:IsInvisible() then return end
+                    if params.update ~= "OnMouseDown" then return end
+                    selectedTags = {}
+                    self:GetParent():GetParent():playcommand("SetTag")
+                    self:GetParent():GetParent():playcommand("InvokeSearch")
+                end,
+                RolloverUpdateCommand = function(self, params)
+                    if self:IsInvisible() then return end
+                    self:alphaDeterminingFunction()
+                end,
+            },
+            UIElements.TextButton(1, 1, "Common Normal") .. {
                 Name = "Apply",
                 InitCommand = function(self)
                     self.bg = self:GetChild("BG")
                     self.txt = self:GetChild("Text")
-                    self:xy(actuals.Width - ((actuals.MSDColumnLeftGap - actuals.NameColumnLeftGap - actuals.MSDWidth / 2) + actuals.NameColumnLeftGap + actuals.EdgePadding)/2, actuals.Height/2 - actuals.TopLipHeight * 2)
+                    self:xy(
+                        actuals.Width - ((actuals.MSDColumnLeftGap - actuals.NameColumnLeftGap - actuals.MSDWidth / 2) + actuals.NameColumnLeftGap + actuals.EdgePadding)/2,
+                        actuals.Height/2 - actuals.TopLipHeight * 2
+                    )
                     self.bg:halign(0)
                     self.txt:x(actuals.MSDWidth*1.2 / 2)
                     self.txt:zoom(msdTextSize)

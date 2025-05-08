@@ -742,6 +742,11 @@ Steps::GetNPSVector(const NoteData& nd,
 	}
 	std::vector<int> doot(sz + 1);
 	for (const auto& p : intervals_to_counts) {
+		if (p.first < 0) {
+			Locator::getLogger()->error(
+			  "BAD FILE PRODUCED NEGATIVE ETANER itv {}", p.first);
+			continue;
+		}
 		doot[p.first] = p.second;
 	}
 
@@ -822,6 +827,11 @@ Steps::GetCNPSVector(const NoteData& nd,
 	
 	std::vector<int> doot(sz + 1);
 	for (const auto& p : intervals_to_counts) {
+		if (p.first < 0) {
+			Locator::getLogger()->error(
+			  "BAD FILE PRODUCED NEGATIVE ETANER itv {}", p.first);
+			continue;
+		}
 		doot[p.first] = p.second;
 	}
 	
@@ -841,6 +851,9 @@ class LunaSteps : public Luna<Steps>
 	DEFINE_METHOD(GetAuthorCredit, GetCredit())
 	DEFINE_METHOD(GetMeter, GetMeter())
 	DEFINE_METHOD(GetFilename, GetFilename())
+	DEFINE_METHOD(HasGoal, HasGoal())
+	DEFINE_METHOD(IsPermaMirror, IsPermaMirror())
+	DEFINE_METHOD(IsFavorited, IsFavorited())
 
 	static auto HasSignificantTimingChanges(T* p, lua_State* L) -> int
 	{
@@ -1328,6 +1341,9 @@ class LunaSteps : public Luna<Steps>
 		ADD_METHOD(GetFirstSecond);
 		ADD_METHOD(GetLastSecond);
 		ADD_METHOD(GetNPSPerMeasure);
+		ADD_METHOD(IsFavorited);
+		ADD_METHOD(HasGoal);
+		ADD_METHOD(IsPermaMirror);
 	}
 };
 

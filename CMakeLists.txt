@@ -19,7 +19,7 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # PROJECT WIDE SETUP
 project(Etterna
-		VERSION 0.73.0
+		VERSION 0.74.4
         HOMEPAGE_URL https://github.com/etternagame/etterna/
         LANGUAGES C CXX ASM)
 
@@ -106,6 +106,7 @@ target_link_libraries(Etterna PRIVATE vorbis)
 target_link_libraries(Etterna PRIVATE pcre)
 target_link_libraries(Etterna PRIVATE libmad)
 target_link_libraries(Etterna PRIVATE stb)
+target_link_libraries(Etterna PRIVATE miniz)
 target_link_libraries(Etterna PRIVATE libcurl)
 target_link_libraries(Etterna PRIVATE fmt::fmt)
 target_link_libraries(Etterna PRIVATE plog::plog)

@@ -90,11 +90,12 @@ class DownloadablePack
 {
   public:
 	std::string name{ "" };
-	size_t size{ 0 };
+	int64_t size{ 0 };
 	int id{ 0 };
 	float avgDifficulty{ 0 };
 	int plays{ 0 };
 	int songs{ 0 };
+	bool nsfw{ false };
 	std::string url{ "" };
 	std::string mirror{ "" };
 	std::string bannerUrl{ "" };
@@ -111,16 +112,25 @@ class DownloadablePackPaginationKey
   public:
 	DownloadablePackPaginationKey(const std::string& searchString,
 								  std::set<std::string>& tagFilters,
-								  int perPage)
+								  bool tagsMatchAny,
+								  int perPage,
+								  const std::string& sortField,
+								  bool ascendingSort)
 	  : searchString(searchString)
 	  , tagFilters(tagFilters)
+	  , tagsMatchAny(tagsMatchAny)
 	  , perPage(perPage)
+	  , sortByField(sortField)
+	  , sortIsAsc(ascendingSort)
 	{
 	}
 	DownloadablePackPaginationKey()
 	  : searchString("")
 	  , tagFilters({})
+	  , tagsMatchAny(true)
 	  , perPage(0)
+	  , sortByField("")
+	  , sortIsAsc(true)
 	{
 	}
 
@@ -128,12 +138,18 @@ class DownloadablePackPaginationKey
 	{
 		return (perPage == other.perPage) &&
 			   (searchString == other.searchString) &&
-			   (tagFilters == other.tagFilters);
+			   (tagFilters == other.tagFilters) &&
+			   (tagsMatchAny == other.tagsMatchAny) &&
+			   (sortByField == other.sortByField) &&
+			   (sortIsAsc == other.sortIsAsc);
 	}
 
 	std::string searchString{};
 	std::set<std::string> tagFilters{};
 	int perPage = 0;
+	std::string sortByField{};
+	bool sortIsAsc = true;
+	bool tagsMatchAny = true;
 };
 
 class DownloadablePackPagination
@@ -141,8 +157,16 @@ class DownloadablePackPagination
   public:
 	DownloadablePackPagination(const std::string& searchString,
 							   std::set<std::string>& tagFilters,
-							   int perPage)
-	  : key(searchString, tagFilters, perPage)
+							   bool tagsMatchAny,
+							   int perPage,
+							   const std::string& sortByField,
+							   bool sortIsAsc)
+	  : key(searchString,
+			tagFilters,
+			tagsMatchAny,
+			perPage,
+			sortByField,
+			sortIsAsc)
 	{
 	}
 	DownloadablePackPagination(const DownloadablePackPaginationKey& key)
@@ -283,6 +307,9 @@ struct std::hash<DownloadablePackPaginationKey>
 			s ^= h(tag) + 0x9e3779b9 + (s << 6) + (s >> 2);
 		}
 		r = r * 31 + s;
+		r = r * 31 + std::hash<std::string>()(k.sortByField);
+		r = r * 31 + std::hash<bool>()(k.sortIsAsc);
+		r = r * 31 + std::hash<bool>()(k.tagsMatchAny);
 		return r;
 	}
 };
@@ -295,6 +322,10 @@ struct ApiSearchCriteria
 	std::string chartAuthor{};
 	std::string songArtist{};
 	std::vector<std::string> packTags{};
+	bool packTagsMatchAny = true;
+
+	std::string sortBy{};
+	bool sortIsAscending = true;
 
 	// request params (actual names)
 	int page = 0;
@@ -317,11 +348,15 @@ struct ApiSearchCriteria
 			o += fmt::format(", songArtist: {}", songArtist);
 		}
 		if (!packTags.empty()) {
-			o += ", tags: [";
+			o += fmt::format(", tags (matchAny={}): [", packTagsMatchAny);
 			for (auto& s : packTags) {
 				o += fmt::format("'{}'", s);
 			}
 			o += "]";
+		}
+		if (!sortBy.empty()) {
+			o += fmt::format(
+			  ", sortBy: {}:{}", sortBy, sortIsAscending ? "asc" : "desc");
 		}
 		return o + ")";
 	}
@@ -335,11 +370,13 @@ class HTTPRequest
 	  CURL* h,
 	  std::function<void(HTTPRequest&)> done = [](HTTPRequest& req) {},
 	  curl_httppost* postform = nullptr,
-	  std::function<void(HTTPRequest&)> fail = [](HTTPRequest& req) {})
+	  std::function<void(HTTPRequest&)> fail = [](HTTPRequest& req) {},
+	  bool requiresLogin = false)
 	  : handle(h)
 	  , form(postform)
 	  , Done(done)
-	  , Failed(fail){};
+	  , Failed(fail)
+	  , requiresLogin(requiresLogin){};
 	long response_code{ 0 };
 	CURL* handle{ nullptr };
 	curl_httppost* form{ nullptr };
@@ -347,6 +384,7 @@ class HTTPRequest
 	std::string headers;
 	std::function<void(HTTPRequest&)> Done;
 	std::function<void(HTTPRequest&)> Failed;
+	bool requiresLogin = false;
 };
 enum class RequestMethod
 {
@@ -426,10 +464,6 @@ class DownloadManager
 	void UpdateGameplayState(bool gameplay);
 
 	/////
-	// External static util
-	static bool InstallSmzip(const std::string& zipFile);
-
-	/////
 	// Lua external access
 	void PushSelf(lua_State* L);
 
@@ -488,8 +522,8 @@ class DownloadManager
 	void UpdateGoal(ScoreGoal* goal) {
 		UpdateGoalRequest(goal);
 	}
-	void RemoveGoal(ScoreGoal* goal) {
-		RemoveGoalRequest(goal);
+	void RemoveGoal(ScoreGoal* goal, bool oldGoal = false) {
+		RemoveGoalRequest(goal, oldGoal);
 	}
 	void RefreshGoals(
 	  const DateTime start = DateTime::GetFromString("1990-01-01 12:00:00"),
@@ -553,10 +587,106 @@ class DownloadManager
 		GetReplayDataRequest(scorekey, userid, username, chartkey, callback);
 	}
 
+	OnlineTopScore GetTopSkillsetScore(unsigned int rank,
+									   Skillset ss,
+									   bool& result);
+	float GetSkillsetRating(Skillset ss);
+	int GetSkillsetRank(Skillset ss);
+
 	DownloadablePackPagination& GetPackPagination(
 	  const std::string& searchString,
 	  std::set<std::string> tagFilters,
-	  int perPage);
+	  bool tagsMatchAny,
+	  int perPage,
+	  const std::string& sortBy,
+	  bool sortIsAsc);
+	std::shared_ptr<Download> DownloadAndInstallPack(const std::string& url,
+													 std::string filename = "");
+	std::shared_ptr<Download> DownloadAndInstallPack(DownloadablePack* pack,
+													 bool mirror = false);
+
+	void DownloadCoreBundle(const std::string& bundlename, bool mirror = false);
+	std::vector<DownloadablePack*> GetCoreBundle(const std::string& bundlename);
+
+	bool OpenSitePage(const std::string& path);
+	bool OpenProjectPage(const std::string& path);
+
+	bool ShowPackPage(int packid) {
+		return OpenSitePage(fmt::format("/packs/{}", packid));
+	}
+	bool ShowUserPage(const std::string& username){
+		return OpenSitePage(fmt::format("/users/{}", username));
+	}
+	bool ShowScorePage(const std::string& username, int scoreid)
+	{
+		return OpenSitePage(
+		  fmt::format("/users/{}/scores/{}", username, scoreid));
+	}
+	bool ShowBugReportSite();
+	bool ShowEditorSite();
+	bool ShowProjectReleases() {
+		return OpenProjectPage("/releases");
+	}
+	bool ShowProjectSite() {
+		return OpenProjectPage("");
+	}
+
+	/////
+	// User session
+	// Session cookie content
+	std::string authToken{ "" };
+	// Currently logged in username
+	std::string sessionUser{ "" };
+	// Leaderboard ranks for logged in user by skillset
+	std::map<Skillset, int> sessionRanks{};
+	// Online profile skillset ratings
+	std::map<Skillset, double> sessionRatings{};
+
+	/////
+	// Score uploads
+	std::deque<HighScore*> ScoreUploadSequentialQueue;
+	unsigned int sequentialScoreUploadTotalWorkload{ 0 };
+
+	/////
+	// Goal uploads
+	std::deque<ScoreGoal*> GoalUploadSequentialQueue;
+	unsigned int sequentialGoalUploadTotalWorkload{ 0 };
+
+	/////
+	// Favorite uploads
+	std::deque<std::string> FavoriteUploadSequentialQueue;
+	unsigned int sequentialFavoriteUploadTotalWorkload{ 0 };
+
+	/////
+	// Pack downloads
+	// Active downloads
+	std::map<std::string, std::shared_ptr<Download>> downloads;
+	// (pack,isMirror)
+	std::deque<std::pair<DownloadablePack*, bool>> DownloadQueue;
+	std::map<std::string, std::shared_ptr<Download>> finishedDownloads;
+	std::map<std::string, std::shared_ptr<Download>> pendingInstallDownloads;
+	std::map<int, DownloadablePack> downloadablePacks;
+	std::unordered_map<std::string, std::vector<std::string>> packTags;
+	std::unordered_map<DownloadablePackPaginationKey,
+					   DownloadablePackPagination>
+	  downloadablePackPaginations{};
+	// (tag_name, list of pack ids) -- we use this for bundles
+	std::unordered_map<std::string, std::set<int>> tagPacks;
+
+	/////
+	// Chart leaderboards
+	std::map<std::string, std::vector<OnlineScore>> chartLeaderboards{};
+	std::map<Skillset, std::vector<OnlineTopScore>> topScores{};
+	std::set<std::string> unrankedCharts{};
+	bool currentrateonly = false;
+	bool topscoresonly = true;
+	bool validonly = true;
+
+	/////
+	// Misc information
+	// Last version according to server (Or current if non was obtained)
+	std::string lastVersion{ "" };
+	std::string countryCode{ "" };
 
   private:
 	/// Default empty reference for calls allowing Lua functions to be passed
@@ -598,7 +728,7 @@ class DownloadManager
 	  const DateTime end);
 	void AddGoalRequest(ScoreGoal* goal);
 	void UpdateGoalRequest(ScoreGoal* goal);
-	void RemoveGoalRequest(ScoreGoal* goal);
+	void RemoveGoalRequest(ScoreGoal* goal, bool oldGoal);
 	void GetGoalsRequest(std::function<void(std::vector<ScoreGoal>)> onSuccess,
 						 const DateTime start,
 						 const DateTime end);
@@ -618,7 +748,12 @@ class DownloadManager
 							  const std::string& chartkey,
 							  LuaReference& callback);
 
+	void RefreshUserData();
+	void RequestTop25(Skillset ss);
+	void RefreshLastVersion();
+
 	void GetPackTagsRequest();
+	void CachePacksForTag(const std::string& tag);
 
 	void MultiSearchRequest(ApiSearchCriteria searchCriteria,
 							std::function<void(rapidjson::Document&)> whenDoneParser);
@@ -630,6 +765,7 @@ class DownloadManager
 	  std::function<void(HTTPRequest&)> done,
 	  bool requireLogin = true,
 	  RequestMethod httpMethod = RequestMethod::GET,
+	  bool compressed = false,
 	  bool async = true,
 	  bool withBearer = true);
 	// To send a request to API based URL, ratelimit at different path
@@ -640,6 +776,7 @@ class DownloadManager
 	  std::function<void(HTTPRequest&)> done,
 	  bool requireLogin = true,
 	  RequestMethod httpMethod = RequestMethod::GET,
+	  bool compressed = false,
 	  bool async = true,
 	  bool withBearer = true);
 	// Send a request directly to a given URL, ratelimit at other path
@@ -650,41 +787,9 @@ class DownloadManager
 	  std::function<void(HTTPRequest&)> done,
 	  bool requireLogin,
 	  RequestMethod httpMethod,
+	  bool compressed,
 	  bool async,
 	  bool withBearer);
-
-	// Currently logging in (Since it's async, to not try twice)
-	bool loggingIn{ false };
-	// Currently in gameplay y/n
-	bool gameplay{ false };
-	bool initialized{ false };
-
-	std::unordered_map<std::string, std::chrono::steady_clock::time_point>
-	  endpointRatelimitTimestamps{};
-	std::unordered_map<std::string, std::vector<HTTPRequest*>>
-	  ratelimitedRequestQueue{};
-	std::unordered_set<std::string> newlyRankedChartkeys{};
-
-  // old
-  public:
-
-	void RefreshPackList(const std::string& url);
-	void RefreshLastVersion();
-	void RefreshUserData();
-	void RefreshTop25(Skillset ss);
-
-	std::shared_ptr<Download> DownloadAndInstallPack(const std::string& url,
-													 std::string filename = "");
-	std::shared_ptr<Download> DownloadAndInstallPack(DownloadablePack* pack,
-													 bool mirror = false);
-	void DownloadCoreBundle(const std::string& whichoneyo, bool mirror = false);
-	std::vector<DownloadablePack*> GetCoreBundle(const std::string& whichoneyo);
-
-	OnlineTopScore GetTopSkillsetScore(unsigned int rank,
-									   Skillset ss,
-									   bool& result);
-	float GetSkillsetRating(Skillset ss);
-	int GetSkillsetRank(Skillset ss);
 
 	// Active HTTP requests (async, curlMulti)
 	std::vector<HTTPRequest*> HTTPRequests;
@@ -692,65 +797,25 @@ class DownloadManager
 	CURLM* pack_multi_handle = nullptr;
 	CURLM* http_req_handle = nullptr;
 
-	/////
-	// User session
-	// Session cookie content
-	std::string authToken{ "" };
-	// Currently logged in username
-	std::string sessionUser{ "" };
-	// Leaderboard ranks for logged in user by skillset
-	std::map<Skillset, int> sessionRanks{};
-	// Online profile skillset ratings
-	std::map<Skillset, double> sessionRatings{};
+	// Currently logging in (Since it's async, to not try twice)
+	bool loggingIn{ false };
+	// Currently in gameplay y/n
+	bool gameplay{ false };
+	bool initialized{ false };
 
-	/////
-	// Score uploads
-	std::deque<HighScore*> ScoreUploadSequentialQueue;
-	unsigned int sequentialScoreUploadTotalWorkload{ 0 };
+	float timeSinceLastDownload = 0.F;
 
-	/////
-	// Goal uploads
-	std::deque<ScoreGoal*> GoalUploadSequentialQueue;
-	unsigned int sequentialGoalUploadTotalWorkload{ 0 };
-
-	/////
-	// Favorite uploads
-	std::deque<std::string> FavoriteUploadSequentialQueue;
-	unsigned int sequentialFavoriteUploadTotalWorkload{ 0 };
-	
-
-	/////
-	// Pack downloads
-	const int maxPacksToDownloadAtOnce = 1;
-	const float DownloadCooldownTime = 5.f;
-	float timeSinceLastDownload = 0.f;
-	// Active downloads
-	std::map<std::string, std::shared_ptr<Download>> downloads;
-	// (pack,isMirror)
-	std::deque<std::pair<DownloadablePack*, bool>> DownloadQueue;
-	std::map<std::string, std::shared_ptr<Download>> finishedDownloads;
-	std::map<std::string, std::shared_ptr<Download>> pendingInstallDownloads;
-	std::map<int, DownloadablePack> downloadablePacks;
-	std::unordered_map<std::string, std::vector<std::string>> packTags;
-	std::unordered_map<DownloadablePackPaginationKey,
-					   DownloadablePackPagination>
-	  downloadablePackPaginations{};
+	std::unordered_map<std::string, std::chrono::steady_clock::time_point>
+	  endpointRatelimitTimestamps{};
+	std::unordered_map<std::string, std::vector<HTTPRequest*>>
+	  ratelimitedRequestQueue{};
+	std::unordered_set<std::string> newlyRankedChartkeys{};
 
 
-	/////
-	// Chart leaderboards
-	std::map<std::string, std::vector<OnlineScore>> chartLeaderboards{};
-	std::map<Skillset, std::vector<OnlineTopScore>> topScores{};
-	std::set<std::string> unrankedCharts{};
-	bool currentrateonly = false;
-	bool topscoresonly = true;
-	bool ccoffonly = false;
+  // old
+  public:
 
-	/////
-	// Misc information
-	// Last version according to server (Or current if non was obtained)
-	std::string lastVersion{ "" };
-	std::string countryCode;
+	void RefreshPackList(const std::string& url);
 };
 
 extern std::shared_ptr<DownloadManager> DLMAN;

@@ -492,6 +492,7 @@ Profile::AddGoal(const std::string& ck)
 	ScoreGoal goal;
 	goal.timeassigned = DateTime::GetNowDateTime();
 	goal.rate = GAMESTATE->m_SongOptions.GetCurrent().m_fMusicRate;
+	goal.oldrate = goal.oldrate;
 	goal.chartkey = ck;
 	// duplication avoidance should be simpler than this? -mina
 	if (goalmap.count(ck))
@@ -501,7 +502,7 @@ Profile::AddGoal(const std::string& ck)
 
 	goal.CheckVacuity();
 	goalmap[ck].Add(goal);
-	DLMAN->AddGoal(&goal);
+	DLMAN->AddGoal(&goalmap[ck].goals.back());
 	FillGoalTable();
 	MESSAGEMAN->Broadcast("GoalTableRefresh");
 	return true;
@@ -536,6 +537,15 @@ Profile::LoadGoalIfNew(ScoreGoal goal)
 		}
 	}
 	goal.CheckVacuity();
+
+	auto* steps = SONGMAN->GetStepsByChartkey(goal.chartkey);
+	if (steps != nullptr) {
+		steps->SetHasGoal(true);
+	}
+	auto* song = SONGMAN->GetSongByChartkey(goal.chartkey);
+	if (song != nullptr) {
+		song->SetHasGoal(true);
+	}
 
 	Locator::getLogger()->info("Saved goal locally: {}", goal.DebugString());
 	goalmap[goal.chartkey].Add(goal);
@@ -587,9 +597,11 @@ ScoreGoal::LoadFromNode(const XNode* pNode)
 	std::string s;
 
 	pNode->GetChildValue("Rate", rate);
+	oldrate = rate;
 	pNode->GetChildValue("Percent", percent);
 	if (percent > 1.f) // goddamnit why didnt i think this through originally
 		percent /= 100.f;
+	oldpercent = percent;
 	pNode->GetChildValue("Priority", priority);
 	pNode->GetChildValue("Achieved", achieved);
 	pNode->GetChildValue("TimeAssigned", s);
@@ -625,6 +637,15 @@ ScoreGoal::UploadIfNotVacuous()
 {
 	if (!vacuous || !timeachieved.GetString().empty())
 		DLMAN->UpdateGoal(this);
+}
+
+void
+ScoreGoal::ReUploadIfNotVacuous()
+{
+	if (!vacuous) {
+		DLMAN->RemoveGoal(this, true);
+		DLMAN->AddGoal(this);
+	}
 }
 
 // aaa too lazy to write comparators rn -mina
@@ -676,6 +697,24 @@ Profile::RemoveGoal(const std::string& ck, DateTime assigned)
 		if (sgv[i].timeassigned == assigned) {
 			DLMAN->RemoveGoal(&sgv[i]);
 			sgv.erase(sgv.begin() + i);
+
+			// remove goal from data structures
+			auto song = SONGMAN->GetSongByChartkey(ck);
+			auto steps = SONGMAN->GetStepsByChartkey(ck);
+			if (goalmap.contains(ck) && goalmap.at(ck).Get().size() == 0) {
+				steps->SetHasGoal(false);
+			}
+			if (song) {
+				auto hasgoal = false;
+				for (auto& s : song->GetAllSteps()) {
+					if (goalmap.contains(ck) &&
+						goalmap.at(ck).Get().size() > 0) {
+						hasgoal = true;
+						break;
+					}
+				}
+				song->SetHasGoal(hasgoal);
+			}
 		}
 	}
 }
@@ -1058,26 +1097,39 @@ class LunaProfile : public Luna<Profile>
 	{
 		p->FillGoalTable();
 
-		if (p->filtermode == 3) {
-			p->filtermode = 1;
+		auto direction = true;
+		if (!lua_isnoneornil(L, 1)) {
+			direction = BArg(1);
+		}
+
+		auto newmode = p->filtermode;
+		if (direction)
+			newmode++;
+		else
+			newmode--;
+		if (newmode > 3)
+			newmode = 1;
+		else if (newmode < 1)
+			newmode = 3;
+		p->filtermode = newmode;
+
+		if (p->filtermode == 1) {
 			return 0;
 		}
 
 		std::vector<ScoreGoal*> doot;
-		if (p->filtermode == 1) {
+		if (p->filtermode == 2) {
 			for (auto& sg : p->goaltable)
 				if (sg->achieved)
 					doot.emplace_back(sg);
 			p->goaltable = doot;
-			p->filtermode = 2;
 			return 0;
 		}
-		if (p->filtermode == 2) {
+		if (p->filtermode == 3) {
 			for (auto& sg : p->goaltable)
 				if (!sg->achieved)
 					doot.emplace_back(sg);
 			p->goaltable = doot;
-			p->filtermode = 3;
 			return 0;
 		}
 		return 0;
@@ -1243,9 +1295,10 @@ class LunaScoreGoal : public Luna<ScoreGoal>
 		if (!p->achieved) {
 			auto newrate = FArg(1);
 			CLAMP(newrate, MIN_MUSIC_RATE, MAX_MUSIC_RATE);
+			p->oldrate = p->rate;
 			p->rate = newrate;
 			p->CheckVacuity();
-			p->UploadIfNotVacuous();
+			p->ReUploadIfNotVacuous();
 		}
 		return 1;
 	}
@@ -1277,9 +1330,10 @@ class LunaScoreGoal : public Luna<ScoreGoal>
 			}
 
 
+			p->oldpercent = p->percent;
 			p->percent = newpercent;
 			p->CheckVacuity();
-			p->UploadIfNotVacuous();
+			p->ReUploadIfNotVacuous();
 		}
 		return 1;
 	}
@@ -1290,7 +1344,8 @@ class LunaScoreGoal : public Luna<ScoreGoal>
 			auto newpriority = IArg(1);
 			CLAMP(newpriority, 1, 100);
 			p->priority = newpriority;
-			p->UploadIfNotVacuous();
+			// priority doesnt matter online
+			// p->UploadIfNotVacuous();
 		}
 		return 1;
 	}
@@ -1303,7 +1358,7 @@ class LunaScoreGoal : public Luna<ScoreGoal>
 
 	static int Delete(T* p, lua_State* L)
 	{
-		PROFILEMAN->GetProfile(PLAYER_1)->RemoveGoal(p->chartkey,
+		PROFILEMAN->GetProfile(PLAYER_1)->RemoveGoal(p->chartkey.c_str(),
 													 p->timeassigned);
 		return 0;
 	}

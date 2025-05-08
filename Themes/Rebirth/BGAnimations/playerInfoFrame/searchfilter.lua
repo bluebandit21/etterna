@@ -178,6 +178,7 @@ local function upperSection()
             local subtitlepos = input:find("subtitle=", 1, true)
             local grouppos = input:find("group=", 1, true)
             local packpos = input:find("pack=", 1, true)
+            local ckpos = input:find("ck=", 1, true)
 
             -- because title is a substring of subtitle we have to check to see if the match is incorrect
             if titlepos ~= nil and subtitlepos ~= nil and titlepos == subtitlepos + 3 then
@@ -189,12 +190,13 @@ local function upperSection()
             local foundtitle = ""
             local foundsubtitle = ""
             local foundgroup = ""
+            local foundck = ""
             
             if artistpos ~= nil or authorpos ~= nil or
                 titlepos ~= nil or subtitlepos ~= nil or
                 mapperpos ~= nil or charterpos ~= nil or
                 stepperpos ~= nil or grouppos ~= nil or
-                packpos ~= nil then
+                packpos ~= nil or ckpos ~= nil then
                 
                 if artistpos ~= nil then
                     local strend = input:find("[;]", artistpos+1)
@@ -237,17 +239,24 @@ local function upperSection()
                     if strend == nil then strend = #input else strend = strend-1 end
                     foundgroup = input:sub(packpos + 5, strend)
                 end
+                if ckpos ~= nil then
+                    local strend = input:find("[;]", ckpos+1)
+                    if strend == nil then strend = #input else strend = strend-1 end
+                    foundck = input:sub(ckpos + 3, strend)
+                end
                 searchentry.Title = foundtitle
                 searchentry.Subtitle = foundsubtitle
                 searchentry.Artist = foundartist
                 searchentry.Author = foundauthor
                 searchentry.Group = foundgroup
+                searchentry.ChartKey = foundck
             else
                 searchentry.Title = input
                 searchentry.Subtitle = ""
                 searchentry.Artist = ""
                 searchentry.Author = ""
                 searchentry.Group = ""
+                searchentry.ChartKey = ""
             end
 
             -- you know what im just going to update all the other entry fields based on this one
@@ -412,11 +421,11 @@ local function upperSection()
                 -- im just gonna.. update all the fields... for your information....
                 -- this is ... the ... worst possible way .... but also the best....
                 if focusedField == 1 then
-                    self:GetChild("RowFrame_2"):GetChild("RowInput"):settext(searchentry.Title)
-                    self:GetChild("RowFrame_3"):GetChild("RowInput"):settext(searchentry.Subtitle)
-                    self:GetChild("RowFrame_4"):GetChild("RowInput"):settext(searchentry.Artist)
-                    self:GetChild("RowFrame_5"):GetChild("RowInput"):settext(searchentry.Author)
-                    self:GetChild("RowFrame_6"):GetChild("RowInput"):settext(searchentry.Group)
+                    self:GetDescendant("RowFrame_2", "RowInput"):settext(searchentry.Title)
+                    self:GetDescendant("RowFrame_3", "RowInput"):settext(searchentry.Subtitle)
+                    self:GetDescendant("RowFrame_4", "RowInput"):settext(searchentry.Artist)
+                    self:GetDescendant("RowFrame_5", "RowInput"):settext(searchentry.Author)
+                    self:GetDescendant("RowFrame_6", "RowInput"):settext(searchentry.Group)
                 else
                     -- backwards engineering the any search field
                     -- for the kids who have big brains and want bigger brains
@@ -438,7 +447,7 @@ local function upperSection()
                             finalstr = finalstr .. "group="..searchentry.Group..";"
                         end 
                     end
-                    self:GetChild("RowFrame_1"):GetChild("RowInput"):settext(finalstr)
+                    self:GetDescendant("RowFrame_1", "RowInput"):settext(finalstr)
                 end
             end
             -- update all the search fields

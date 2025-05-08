@@ -435,24 +435,6 @@ function getSongOptions()
     return GAMESTATE:GetSongOptionsObject("ModsLevel_Preferred")
 end
 
--- safely get a very deep child of an ActorFrame
--- just in case something in between doesnt exist
--- the names should be in the order you would chain the GetChild usages
--- GetChild("Top"):GetChild("childchild"):GetChild("greatgrandchild") ...
--- if something doesnt exist, return nil
-function ActorFrame.safeGetChild(self, ...)
-    local names = {...}
-    local final = self
-    for i, name in ipairs(names) do
-        if final ~= nil and final.GetChild ~= nil then
-            final = final:GetChild(name)
-        else
-            return final
-        end
-    end
-    return final
-end
-
 -- convert a receptor size to a mini because this math is really annoying to memorize
 function ReceptorSizeToMini(percent)
     return 2 - percent / 0.5
@@ -476,6 +458,33 @@ function renameProfileDialogue(profile, isNewProfile)
         function(answer)
             profile:RenameProfile(answer)
             MESSAGEMAN:Broadcast("ProfileRenamed")
+        end,
+        function(answer)
+            local result = answer ~= nil and answer:gsub("^%s*(.-)%s*$", "%1") ~= "" and not answer:match("::") and answer:gsub("^%s*(.-)%s*$", "%1"):sub(-1) ~= ":"
+            if not result then
+                SCREENMAN:GetTopScreen():GetChild("Question"):settext(question .. "\nDo not leave this space blank. Do not use ':'\nTo exit, press Esc.")
+            end
+            return result, "Response invalid."
+        end,
+        function()
+            -- upon exit, do nothing
+            -- profile name is unchanged
+            MESSAGEMAN:Broadcast("ProfileRenamed")
+        end
+    )
+end
+
+-- convenience to control the create profile dialogue logic and input redir scope
+function createProfileDialogue()
+    local question = "NEW PROFILE\nPlease enter a profile name."
+    askForInputStringMaintainingInputRedirect(
+        question,
+        255,
+        false,
+        function(answer)
+            local new = PROFILEMAN:CreateDefaultProfile()
+            new:RenameProfile(answer)
+            MESSAGEMAN:Broadcast("ProfileCreated")
         end,
         function(answer)
             local result = answer ~= nil and answer:gsub("^%s*(.-)%s*$", "%1") ~= "" and not answer:match("::") and answer:gsub("^%s*(.-)%s*$", "%1"):sub(-1) ~= ":"

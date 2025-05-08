@@ -155,6 +155,7 @@ class SongManager
 											 // playlist groups
 
 	static void FinalizeSong(Song* pNewSong, const std::string& dir);
+	bool OpenSongFolder(const Song* pSong);
 
 	// calc test stuff
 	auto SaveCalcTestCreateNode() const -> XNode*;
@@ -162,6 +163,15 @@ class SongManager
 	void SaveCalcTestXmlToDir() const;
 	std::map<Skillset, CalcTestList> testChartList;
 	std::unique_ptr<Calc> calc;
+
+	// Indexed by chartkeys
+	void AddKeyedPointers(Song* new_song);
+	std::unordered_map<std::string, Song*> SongsByKey;
+	std::unordered_map<std::string, Steps*> StepsByKey;
+	
+	/////
+	// External static util
+	static bool InstallSmzip(const std::string& zipFile);
 
   protected:
 	void LoadStepManiaSongDir(std::string sDir, LoadingWindow* ld);
@@ -175,11 +185,6 @@ class SongManager
 	std::map<std::string, Song*> m_SongsByDir;
 
 	std::vector<std::pair<std::pair<std::string, unsigned int>, Song*>*> cache;
-
-	// Indexed by chartkeys
-	void AddKeyedPointers(Song* new_song);
-	std::unordered_map<std::string, Song*> SongsByKey;
-	std::unordered_map<std::string, Steps*> StepsByKey;
 
 	std::set<std::string> m_GroupsToNeverCache;
 	/** @brief The most popular songs ranked by number of plays. */

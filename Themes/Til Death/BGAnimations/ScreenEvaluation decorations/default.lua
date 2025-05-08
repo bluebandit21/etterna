@@ -153,9 +153,10 @@ local function scoreBoard(pn, position)
 	totalTaps = 0
 
 	local function setupNewScoreData(score)
-		local replay = REPLAYS:GetActiveReplay()
-		local dvtTmp = usingCustomWindows and replay:GetOffsetVector() or score:GetOffsetVector()
-		local tvt = usingCustomWindows and replay:GetTapNoteTypeVector() or score:GetTapNoteTypeVector()
+		local replay = usingCustomWindows and REPLAYS:GetActiveReplay() or score:GetReplay()
+		replay:LoadAllData()
+		local dvtTmp = replay:GetOffsetVector()
+		local tvt = replay:GetTapNoteTypeVector()
 		-- if available, filter out non taps from the deviation list
 		-- (hitting mines directly without filtering would make them appear here)
 		if tvt ~= nil and #tvt > 0 then
@@ -234,8 +235,10 @@ local function scoreBoard(pn, position)
 			if s then
 				score = s
 			end
-			local dvtTmp = score:GetOffsetVector()
-			local tvt = score:GetTapNoteTypeVector()
+			local replay = score:GetReplay()
+			replay:LoadAllData()
+			local dvtTmp = replay:GetOffsetVector()
+			local tvt = replay:GetTapNoteTypeVector()
 			-- if available, filter out non taps from the deviation list
 			-- (hitting mines directly without filtering would make them appear here)
 			if tvt ~= nil and #tvt > 0 then
@@ -539,8 +542,10 @@ local function scoreBoard(pn, position)
 						judge = judge - 1
 						clampJudge()
 						rescorepercent = getRescoredWife3Judge(3, judge, rescoretable)
+						local pct = notShit.floor(rescorepercent, 2)
+						self:diffuse(getGradeColor(GetGradeFromPercent(pct/100)))
 						self:settextf(
-							"%05.2f%% (%s)", notShit.floor(rescorepercent, 2), ws .. judge
+							"%05.2f%% (%s)", pct, ws .. judge
 						)
 						MESSAGEMAN:Broadcast("RecalculateGraphs", {judge = judge})
 					elseif params.Name == "NextJudge" and judge < 9 then
@@ -548,8 +553,10 @@ local function scoreBoard(pn, position)
 						clampJudge()
 						rescorepercent = getRescoredWife3Judge(3, judge, rescoretable)
 						local js = judge ~= 9 and judge or "ustice"
-							self:settextf(
-								"%05.2f%% (%s)", notShit.floor(rescorepercent, 2), ws .. js
+						local pct = notShit.floor(rescorepercent, 2)
+						self:diffuse(getGradeColor(GetGradeFromPercent(pct/100)))
+						self:settextf(
+							"%05.2f%% (%s)", pct, ws .. js
 						)
 						MESSAGEMAN:Broadcast("RecalculateGraphs", {judge = judge})
 					end
@@ -601,16 +608,20 @@ local function scoreBoard(pn, position)
 					if params.Name == "PrevJudge" and judge2 > 4 then
 						judge2 = judge2 - 1
 						rescorepercent = getRescoredWife3Judge(3, judge2, rescoretable)
+						local pct = notShit.floor(rescorepercent, 4)
+						self:diffuse(getGradeColor(GetGradeFromPercent(pct/100)))
 						self:settextf(
-							"%05.4f%% (%s)", notShit.floor(rescorepercent, 4), ws .. judge2
+							"%05.4f%% (%s)", pct, ws .. judge2
 						)
 					elseif params.Name == "NextJudge" and judge2 < 9 then
 						judge2 = judge2 + 1
 						rescorepercent = getRescoredWife3Judge(3, judge2, rescoretable)
 						local js = judge2 ~= 9 and judge2 or "ustice"
+						local pct = notShit.floor(rescorepercent, 4)
+						self:diffuse(getGradeColor(GetGradeFromPercent(pct/100)))
 						self:settextf(
-						"%05.4f%% (%s)", notShit.floor(rescorepercent, 4), ws .. js
-					)
+							"%05.4f%% (%s)", pct, ws .. js
+						)
 					end
 					if params.Name == "ResetJudge" then
 						judge2 = GetTimingDifficulty()
@@ -798,20 +809,136 @@ local function scoreBoard(pn, position)
 	end
 	t[#t+1] = jc
 
+	-- Boolean to check whether shift or alt/backslash is held
+	local shiftHeld = false
+
+	t[#t+1] = Def.ActorFrame {
+		OnCommand = function(self)
+			SCREENMAN:GetTopScreen():AddInputCallback(function(event)
+				-- Detect if first or repeated shift press
+				local button = event.DeviceInput.button
+				if button == "DeviceButton_left shift" or button == "DeviceButton_right shift" or button == "DeviceButton_tab" then
+					if event.type == "InputEventType_FirstPress" or event.type == "InputEventType_Repeat" then
+						if not shiftHeld then
+							shiftHeld = true
+							MESSAGEMAN:Broadcast("ShiftPressed")
+						end
+					elseif event.type == "InputEventType_Release" then
+						if shiftHeld then
+							shiftHeld = false
+							MESSAGEMAN:Broadcast("ShiftReleased")
+						end
+					end
+				end
+			end)
+		end
+	}
+
+	-- Function for calculating RA and LA, returns the ratio of ridiculous to marvelous and ludicrous to ridiculous from offset plot in replay.
+	local function calculateRatios(score)
+		-- Get replay depending on whether custom windows were used or not
+		local replay = usingCustomWindows and REPLAYS:GetActiveReplay() or score:GetReplay()
+		replay:LoadAllData()
+		-- Offset and tap note vectors from replay
+		local offsetTable = replay:GetOffsetVector()
+		local typeTable = replay:GetTapNoteTypeVector()
+
+		if not offsetTable or #offsetTable == 0 or not typeTable or #typeTable == 0 then
+			return -1, -1, -1
+		end
+
+		-- Define judgement windows
+		local window = usingCustomWindows and getCurrentCustomWindowConfigJudgmentWindowTable() or {
+			TapNoteScore_W1 = 22.5 * ms.JudgeScalers[judge], -- j4 marv
+			TapNoteScore_W2 = 45 * ms.JudgeScalers[judge],   -- j4 perf
+			TapNoteScore_W3 = 90 * ms.JudgeScalers[judge],   -- j4 g
+		}
+		-- Define RA and LA thresholds
+		window["TapNoteScore_W0"] = window["TapNoteScore_W1"] / 2 -- ra threshold
+		window["TapNoteScore_W-1"] = window["TapNoteScore_W0"] / 2 -- la threshold
+
+		local laThreshold = window["TapNoteScore_W-1"]
+		local raThreshold = window["TapNoteScore_W0"]
+		local marvThreshold = window["TapNoteScore_W1"] -- marv
+
+		local ludic = 0
+		local ridicLA = 0
+		local ridic = 0
+		local marvRA = 0
+
+		-- Iterate over offset table
+		for i, o in ipairs(offsetTable) do
+			-- Check if note is tap or hold
+			if typeTable[i] == "TapNoteType_Tap" or typeTable[i] == "TapNoteType_HoldHead" then
+				local off = math.abs(o)
+				if off <= raThreshold then
+					ridic = ridic + 1
+				elseif off <= marvThreshold then
+					marvRA = marvRA + 1
+				end
+				if off <= laThreshold then
+					ludic = ludic + 1
+				elseif off <= raThreshold then
+					ridicLA = ridicLA + 1
+				end
+			end
+		end
+
+		-- Return ratios, ridic count, and marv count
+		local ridiculousAttack = ridic / marvRA
+		local ludicrousAttack = ludic / ridicLA
+		return ridiculousAttack, ludicrousAttack, ridicLA, marvRA
+	end
+
 	--[[
-	The following section first adds the ratioText and the maRatio. Then the paRatio is added and positioned. The right
-	values for maRatio and paRatio are then filled in. Finally ratioText and maRatio are aligned to paRatio.
+	The following section first adds the ratioText, laRatio, raRatio, maRatio, and paRatio. Then the correct values are filled in.
+	When shift or alt/backslash is held, the display changes accordingly.
 	--]]
-	local ratioText, maRatio, paRatio, marvelousTaps, perfectTaps, greatTaps
+	local ratioText, raRatio, laRatio, maRatio, paRatio, marvelousTaps, perfectTaps, greatTaps
+	local mapaHover = nil
 	t[#t+1] = Def.ActorFrame {
 		Name = "MAPARatioContainer",
 
+		UIElements.QuadButton(1,1) .. {
+			Name = "MAPAHoverThing",
+			InitCommand = function(self)
+				self:xy(frameX + frameWidth/3, frameY + 5 + 218)
+				self:zoomto(frameWidth/3 * 2 + 5, 25)
+				self:halign(0):valign(1)
+				self:diffusealpha(0)
+				mapaHover = self
+			end,
+			MouseOverCommand = function(self)
+				self:GetParent():GetChild("PAText"):playcommand("Set")
+			end,
+			MouseOutCommand = function(self)
+				self:GetParent():GetChild("PAText"):playcommand("Set")
+			end,
+		},
 		LoadFont("Common Large") .. {
 			Name = "Text",
 			InitCommand = function(self)
 				ratioText = self
 				self:settextf("%s:", translated_info["MAPARatio"])
 				self:zoom(0.25):halign(1)
+			end
+		},
+		LoadFont("Common Large") .. {
+			Name = "LAText",
+			InitCommand = function(self)
+				laRatio = self
+				self:settextf("%.2f:1", 0)
+				self:zoom(0.25):halign(1):rainbow() -- Rainbow cuz it's LA man come on
+				self:visible(false)
+			end
+		},
+		LoadFont("Common Large") .. {
+			Name = "RAText",
+			InitCommand = function(self)
+				raRatio = self
+				self:settextf("%.2f:1", 0)
+				self:zoom(0.25):halign(1)  -- No color, user can set whatever they want here. AAAAA is white so I left as white
+				self:visible(false)
 			end
 		},
 		LoadFont("Common Large") .. {
@@ -836,32 +963,82 @@ local function scoreBoard(pn, position)
 				self:playcommand("Set")
 			end,
 			SetCommand = function(self)
-
-				-- Fill in maRatio and paRatio
+				-- Fill in raRatio, laRatio, maRatio, and paRatio
+				local ridiculousAttack, ludicrousAttack, ridics, marvs = calculateRatios(score)
 				maRatio:settextf("%.1f:1", marvelousTaps / perfectTaps)
 				paRatio:settextf("%.1f:1", perfectTaps / greatTaps)
+				raRatio:settextf("%.2f:1", ridiculousAttack)
+				laRatio:settextf("%.2f:1", ludicrousAttack)
 
-				-- Align ratioText and maRatio to paRatio (self)
-				maRatioX = paRatio:GetX() - paRatio:GetZoomedWidth() - 10
-				maRatio:xy(maRatioX, paRatio:GetY())
+				-- Align with where paRatio was and move things accordingly
+				if shiftHeld and isOver(mapaHover) then
+					-- Show LA/RA ratios
+					laRatio:visible(true)
+					raRatio:visible(true)
+					maRatio:visible(false)
+					paRatio:visible(false)
 
-				ratioTextX = maRatioX - maRatio:GetZoomedWidth() - 10
-				ratioText:xy(ratioTextX, paRatio:GetY())
+					raRatio:settextf("%.2f:1", ridics / marvs) -- ridic:marv
+					raRatio:xy(paRatio:GetX(), paRatio:GetY())
+					local laRatioX = raRatio:GetX() - raRatio:GetZoomedWidth() - 10
+					laRatio:xy(laRatioX, raRatio:GetY())
+					local ratioTextX = laRatioX - laRatio:GetZoomedWidth() - 10
+					ratioText:xy(ratioTextX, raRatio:GetY())
+
+					ratioText:settextf("LA/RA ratio:")
+				elseif shiftHeld or isOver(mapaHover) then
+					-- Show RA/MA ratios
+					raRatio:visible(true)
+					laRatio:visible(false)
+					maRatio:visible(true)
+					paRatio:visible(false)
+
+					maRatio:settextf("%.1f:1", marvs / perfectTaps) -- marv:perf
+					raRatio:xy(paRatio:GetX() - maRatio:GetZoomedWidth() - 10, paRatio:GetY())
+					maRatio:xy(paRatio:GetX(), paRatio:GetY())
+					local ratioTextX = raRatio:GetX() - raRatio:GetZoomedWidth() - 10
+					ratioText:xy(ratioTextX, paRatio:GetY())
+
+					ratioText:settextf("RA/MA ratio:")
+				else
+					-- Show MA/PA ratios
+					raRatio:visible(false)
+					laRatio:visible(false)
+					maRatio:visible(true)
+					paRatio:visible(true)
+
+					maRatio:settextf("%.1f:1", marvelousTaps / perfectTaps) -- marv:perf
+					local maRatioX = paRatio:GetX() - paRatio:GetZoomedWidth() - 10
+					maRatio:xy(maRatioX, paRatio:GetY())
+					local ratioTextX = maRatioX - maRatio:GetZoomedWidth() - 10
+					ratioText:xy(ratioTextX, paRatio:GetY())
+
+					ratioText:settextf("%s:", translated_info["MAPARatio"])
+				end
+
 				if score:GetChordCohesion() == true then
 					maRatio:maxwidth(maRatio:GetZoomedWidth()/0.25)
 					self:maxwidth(self:GetZoomedWidth()/0.25)
 					ratioText:maxwidth(capWideScale(get43size(65), 85)/0.27)
 				end
 			end,
+
+			ShiftPressedMessageCommand = function(self)
+				self:playcommand("Set")
+			end,
+			ShiftReleasedMessageCommand = function(self)
+				self:playcommand("Set")
+			end,
+
 			CodeMessageCommand = function(self, params)
 				if usingCustomWindows then
 					return
 				end
 
 				if params.Name == "PrevJudge" or params.Name == "NextJudge" then
-						marvelousTaps = getRescoredJudge(dvt, judge, 1)
-						perfectTaps = getRescoredJudge(dvt, judge, 2)
-						greatTaps = getRescoredJudge(dvt, judge, 3)
+					marvelousTaps = getRescoredJudge(dvt, judge, 1)
+					perfectTaps = getRescoredJudge(dvt, judge, 2)
+					greatTaps = getRescoredJudge(dvt, judge, 3)
 					self:playcommand("Set")
 				end
 				if params.Name == "ResetJudge" then
@@ -948,11 +1125,12 @@ local function scoreBoard(pn, position)
 	t[#t+1] = rb
 
 	local function scoreStatistics(score)
-		local replay = REPLAYS:GetActiveReplay()
-		local tracks = usingCustomWindows and replay:GetTrackVector() or score:GetTrackVector()
-		local dvtTmp = usingCustomWindows and replay:GetOffsetVector() or score:GetOffsetVector() or {}
+		local replay = usingCustomWindows and REPLAYS:GetActiveReplay() or score:GetReplay()
+		replay:LoadAllData()
+		local tracks = replay:GetTrackVector()
+		local dvtTmp = replay:GetOffsetVector() or {}
 		local devianceTable = {}
-		local types = usingCustomWindows and replay:GetTapNoteTypeVector() or score:GetTapNoteTypeVector()
+		local types = replay:GetTapNoteTypeVector()
 
 		local cbl = 0
 		local cbr = 0
@@ -1003,10 +1181,12 @@ local function scoreBoard(pn, position)
 	end
 
 	-- stats stuff
-	local tracks = score:GetTrackVector()
-	local dvtTmp = score:GetOffsetVector()
+	local replay = score:GetReplay()
+	replay:LoadAllData()
+	local tracks = replay:GetTrackVector()
+	local dvtTmp = replay:GetOffsetVector()
 	local devianceTable = {}
-	local types = score:GetTapNoteTypeVector() or {}
+	local types = replay:GetTapNoteTypeVector() or {}
 	local cbl = 0
 	local cbr = 0
 	local cbm = 0

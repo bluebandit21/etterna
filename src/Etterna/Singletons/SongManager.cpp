@@ -37,7 +37,8 @@
 #include <fstream>
 #include <cmath>
 
-#include "Etterna/Globals/zip_file.hpp"
+#include "Core/Platform/Platform.hpp"
+#include "miniz/zip_file.hpp"
 
 using std::map;
 using std::string;
@@ -74,6 +75,10 @@ static Preference<std::string> g_sDisabledSongs("DisabledSongs", "");
 static Preference<bool> PlaylistsAreSongGroups("PlaylistsAreSongGroups", false);
 static Preference<bool> CacheZipsContainAllAssets("CacheZipsContainAllAssets",
 												  true);
+static Preference<unsigned int> downloadPacksToAdditionalSongs(
+  "downloadPacksToAdditionalSongs",
+  0);
+static const std::string TEMP_ZIP_MOUNT_POINT = "/@temp-zip/";
 
 auto
 SONG_GROUP_COLOR_NAME(size_t i) -> std::string
@@ -123,6 +128,86 @@ SongManager::InitAll(LoadingWindow* ld)
 	}
 	InitSongsFromDisk(ld);
 	LoadCalcTestNode();
+}
+
+bool
+SongManager::InstallSmzip(const std::string& sZipFile)
+{
+	miniz_cpp::zip_file fi;
+	try {
+		fi.load(sZipFile);
+	} catch (std::exception& e) {
+		Locator::getLogger()->error("Exception when trying to extract {} - Zip "
+									"may not exist or is bad : {}",
+									sZipFile,
+									e.what());
+		return false;
+	}
+	// no ext
+	auto zipfilename =
+	  sZipFile.substr(sZipFile.find_last_of('/') + 1, sZipFile.length() - 4);
+	// path being extracted
+	std::string doot = sZipFile;
+
+	auto names = fi.namelist();
+	std::set<std::string> folders{};
+	for (auto& name : names) {
+		if (name.find_first_of('/') == std::string::npos) {
+			// this is probably a random file in the root
+			continue;
+		}
+		auto realname = name.substr(0, name.find_first_of('/'));
+		folders.emplace(realname);
+	}
+	if (folders.size() > 0) {
+		auto foundCandidate = false;
+		if (folders.size() == 1) {
+			doot = *folders.begin();
+			foundCandidate = true;
+		} else {
+			for (auto& fn : folders) {
+				if (make_lower(zipfilename) == make_lower(fn)) {
+					doot = fn;
+					foundCandidate = true;
+					break;
+				}
+			}
+			if (!foundCandidate) {
+				doot = *folders.begin();
+			}
+		}
+		if (!foundCandidate) {
+			Locator::getLogger()->error("Couldn't find good enough folder to "
+										"extract in {}. Picked a random one ({})", sZipFile, doot);
+		}
+	}
+	else {
+		Locator::getLogger()->error("Found no folders in zip {}...", sZipFile);
+		return false;
+	}
+
+	std::string extractTo =
+	  downloadPacksToAdditionalSongs ? "/AdditionalSongs/" : "/Songs/";
+
+	auto filecnt = 0;
+	for (auto& member : names) {
+		if (member.starts_with(doot + "/")) {
+			try {
+				fi.extract(member,
+						   FILEMAN->ResolveSongFolder(
+							 extractTo, downloadPacksToAdditionalSongs));
+				filecnt++;
+			} catch (std::exception& ex) {
+				Locator::getLogger()->error(
+				  "Failed to extract file {} : {}", member, ex.what());
+			}
+		}
+	}
+
+	auto msg = fmt::format(
+	  "Finished extracting {} files for pack {}", filecnt, doot);
+	SCREENMAN->SystemMessage(msg);
+	return true;
 }
 
 static LocalizedString RELOADING("SongManager", "Reloading...");
@@ -1060,10 +1145,14 @@ SongManager::SetFavoritedStatus(std::set<string>& favs)
 		for (auto steps : song->GetAllSteps()) {
 			if (favs.count(steps->GetChartKey()) != 0u) {
 				fav = true;
+				steps->SetFavorited(true);
+			}
+			else {
+				steps->SetFavorited(false);
 			}
 		}
 
-		song->SetFavorited(fav);
+		song->SetHasFavoritedChart(fav);
 	}
 }
 
@@ -1073,7 +1162,11 @@ SongManager::SetPermaMirroredStatus(std::set<string>& pmir)
 	for (auto song : m_pSongs) {
 		for (auto steps : song->GetAllSteps()) {
 			if (pmir.count(steps->GetChartKey()) != 0u) {
-				song->SetPermaMirror(true);
+				song->SetHasPermaMirrorChart(true);
+				steps->SetPermaMirror(true);
+			}
+			else {
+				steps->SetPermaMirror(false);
 			}
 		}
 	}
@@ -1086,8 +1179,13 @@ SongManager::SetHasGoal(std::unordered_map<string, GoalsForChart>& goalmap)
 	for (auto song : m_pSongs) {
 		auto hasGoal = false;
 		for (auto steps : song->GetAllSteps()) {
-			if (goalmap.count(steps->GetChartKey()) != 0u) {
+			if (goalmap.contains(steps->GetChartKey()) &&
+				goalmap.at(steps->GetChartKey()).Get().size() > 0) {
 				hasGoal = true;
+				steps->SetHasGoal(true);
+			}
+			else {
+				steps->SetHasGoal(false);
 			}
 			song->SetHasGoal(hasGoal);
 		}
@@ -1211,6 +1309,10 @@ SongManager::ForceReloadSongGroup(const std::string& sGroupName) const
 	auto songs = GetSongs(sGroupName);
 	for (auto s : songs) {
 		auto stepses = s->GetAllSteps();
+		const auto hadGoal = s->HasGoal();
+		const auto hadFavorite = s->HasFavoritedChart();
+		const auto hadPermamirror = s->HasPermaMirrorChart();
+
 		std::vector<string> oldChartkeys;
 		oldChartkeys.reserve(stepses.size());
 		for (auto steps : stepses) {
@@ -1219,6 +1321,31 @@ SongManager::ForceReloadSongGroup(const std::string& sGroupName) const
 
 		s->ReloadFromSongDir();
 		SONGMAN->ReconcileChartKeysForReloadedSong(s, oldChartkeys);
+
+		s->SetHasGoal(hadGoal);
+		s->SetHasFavoritedChart(hadFavorite);
+		s->SetHasPermaMirrorChart(hadPermamirror);
+
+		auto* prof = PROFILEMAN->GetProfile(PLAYER_1);
+		if (prof) {
+			auto& goals = prof->goalmap;
+			auto& favs = prof->FavoritedCharts;
+			auto& permamirror = prof->PermaMirrorCharts;
+
+			// this should be the new list of steps after reload
+			for (auto* steps : s->GetAllSteps()) {
+				const auto& ck = steps->GetChartKey();
+				if (goals.contains(ck) &&
+					goals.at(ck).Get().size() > 0) {
+					steps->SetHasGoal(true);
+				} else {
+					steps->SetHasGoal(false);
+				}
+
+				steps->SetFavorited(favs.count(ck) > 0u);
+				steps->SetPermaMirror(permamirror.count(ck) > 0u);
+			}
+		}
 	}
 }
 
@@ -1238,8 +1365,8 @@ SongManager::GenerateCachefilesForGroup(const std::string& sGroupName) const
 
 		// Save ssc/sm5 cache file
 		{
-			std::string tmpOutPutPath = "Cache/tmp.ssc";
-			std::string sscCacheFilePath = sdir + "songdata.cache";
+			auto tmpOutPutPath = fmt::format("Cache/tmp_{}.ssc", sGroupName);
+			const auto sscCacheFilePath = sdir + "songdata.cache";
 
 			if (!std::isfinite(s->GetLastSecond())) {
 				Locator::getLogger()->warn("Skipped due to bad bpm {}", sdir);
@@ -1254,7 +1381,7 @@ SongManager::GenerateCachefilesForGroup(const std::string& sGroupName) const
 									 tmpOutPutPath.c_str(),
 									 f.GetError().c_str());
 			}
-			string p = f.GetPath();
+			auto p = f.GetPath();
 			f.Close();
 			std::ofstream dst(sscCacheFilePath, std::ios::binary);
 			std::ifstream src(p, std::ios::binary);
@@ -1326,13 +1453,24 @@ SongManager::GenerateCachefilesForGroup(const std::string& sGroupName) const
 			thing.erase(0, 1);
 		}
 
-		if (additionalSongs) {
-			// have to rewrite the big long path to be Pack/song/stuff.sm
-			auto internal_path = thing.substr(thing.find("/" + sGroupName + "/") + 1);
-			fi.write(thing, internal_path);
-		} else {
-			// path given as /pack/song/stuff.sm works fine as is
-			fi.write(thing);
+		try {
+			if (additionalSongs) {
+				// have to rewrite the big long path to be
+				// Pack/song/stuff.sm
+				const auto internal_path =
+					thing.substr(thing.find("/" + sGroupName + "/") + 1);
+				fi.write(thing, internal_path);
+			} else {
+				// path given as /pack/song/stuff.sm works fine as is
+				fi.write(thing);
+			}
+		} catch (std::runtime_error& ex) {
+			Locator::getLogger()->error(
+				"Had runtime exception while writing file, skipping... Excp: "
+				"{} ; Pack {} ; Song {}",
+				ex.what(),
+				sGroupName,
+				thing);
 		}
 	}
 	fi.save("Cache/" + sGroupName + ".zip");
@@ -1351,7 +1489,7 @@ void
 SongManager::GetFavoriteSongs(std::vector<Song*>& songs) const
 {
 	for (const auto& song : m_pSongs) {
-		if (song->IsFavorited()) {
+		if (song->HasFavoritedChart()) {
 			songs.emplace_back(song);
 		}
 	}
@@ -1483,6 +1621,19 @@ SongManager::GetSongFromDir(std::string dir) const -> Song*
 		return entry->second;
 	}
 	return nullptr;
+}
+
+auto
+SongManager::OpenSongFolder(const Song* pSong) -> bool
+{
+	if (pSong == nullptr) {
+		return false;
+	}
+	auto d = pSong->GetSongDir();
+	auto b = SONGMAN->WasLoadedFromAdditionalSongs(pSong);
+	auto sf = FILEMAN->ResolveSongFolder(d, b);
+
+	return Core::Platform::openFolder(sf);
 }
 
 void
